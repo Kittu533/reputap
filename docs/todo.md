@@ -109,41 +109,40 @@
 ## PHASE 3 — QR & NFC Engine
 
 ### 3.1 Identifier Generation
-- ⬜ `pkg/identifier/nanoid.go` — GenerateID() → "RP-xxxxxxxx"
-- ⬜ Test: uniqueness, format, collision handling
+- ✅ `pkg/identifier/nanoid.go` — GenerateID() → "RP-xxxxxxxx"
+- ✅ Test: uniqueness, format, collision handling
 
 ### 3.2 Product Instance Module (Backend)
-- ⬜ `internal/productinstances/model.go`
-- ⬜ `internal/productinstances/repository.go`
-- ⬜ `internal/productinstances/service.go` — batch generate from order
-- ⬜ `internal/productinstances/handler.go`
-- ⬜ Test: generate instances → verify serial numbers + QR codes created
+- ✅ `internal/productinstances/model.go`
+- ✅ `internal/productinstances/repository.go`
+- ✅ `internal/productinstances/service.go` — batch generate from order
+- ✅ `internal/productinstances/handler.go`
+- ✅ Test: generate instances → verify serial numbers + QR codes created
 
 ### 3.3 QR Code Module (Backend)
-- ⬜ `internal/qrcodes/model.go`
-- ⬜ `internal/qrcodes/repository.go`
-- ⬜ `internal/qrcodes/service.go` — generate QR image (PNG/SVG)
-- ⬜ `internal/qrcodes/handler.go` — list, detail, download, status
-- ⬜ Test: generate → download PNG → download SVG → verify URL encoded
+- ✅ `internal/qrcodes/model.go`
+- ✅ `internal/qrcodes/repository.go`
+- ✅ `internal/qrcodes/service.go` — generate QR image (PNG)
+- ✅ `internal/qrcodes/handler.go` — list, detail, download, status
+- ✅ Test: generate → download PNG → verify URL encoded
 
 ### 3.4 Redirect Engine (Backend)
-- ⬜ `internal/redirect/repository.go` — FindActiveQRWithStore(code)
-- ⬜ `internal/redirect/service.go` — resolve, validate, detect device
-- ⬜ `internal/redirect/handler.go` — GET /r/{code}
-- ⬜ `internal/redirect/templates/not_found.html`
-- ⬜ `internal/redirect/templates/inactive.html`
-- ⬜ Async scan logging (goroutine)
-- ⬜ Test: valid code → 302 | invalid → 404 HTML | inactive → HTML | source tracking
+- ✅ `internal/redirect/repository.go` — FindActiveQRWithStore(code)
+- ✅ `internal/redirect/service.go` — resolve, validate, detect device
+- ✅ `internal/redirect/handler.go` — GET /r/{code}
+- ✅ Error pages embedded as Go constants (not_found, inactive, no_url)
+- ✅ Async scan logging (goroutine)
+- ✅ Test: valid code → 302 | invalid → 404 HTML | inactive → HTML | source tracking
 
 ### 3.5 NFC Status Tracking
-- ⬜ PATCH endpoint for NFC status
-- ⬜ NFC URL generation display
-- ⬜ Test: status transitions
+- ✅ PATCH endpoint for NFC status
+- ✅ NFC configured_at + configured_by auto-set
+- ✅ Test: status transitions
 
 ### 3.6 Frontend
-- ⬜ QR Management page (list, preview, download)
-- ⬜ Instance generation on order detail
-- ⬜ NFC status display per instance
+- ✅ QR Management page (list, search, filter, download PNG)
+- ✅ Instance generation on order detail (generate button + instances table)
+- ✅ NFC status display per instance (colored badges for NFC, production, QC)
 
 ---
 

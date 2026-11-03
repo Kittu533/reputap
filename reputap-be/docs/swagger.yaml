@@ -286,6 +286,50 @@ definitions:
     required:
     - status
     type: object
+  productinstances.InstanceWithQR:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      nfc_configured_at:
+        type: string
+      nfc_configured_by:
+        type: integer
+      nfc_status:
+        type: string
+      order_item_id:
+        type: integer
+      production_status:
+        type: string
+      qc_status:
+        type: string
+      qr_code:
+        type: string
+      qr_code_id:
+        type: integer
+      qr_status:
+        type: string
+      serial_number:
+        type: string
+      store_id:
+        type: integer
+      updated_at:
+        type: string
+    type: object
+  productinstances.UpdateNFCStatusRequest:
+    properties:
+      status:
+        enum:
+        - not_configured
+        - configured
+        - tested
+        - failed
+        - replaced
+        type: string
+    required:
+    - status
+    type: object
   products.CreateRequest:
     properties:
       description:
@@ -405,6 +449,37 @@ definitions:
         type: number
     required:
     - name
+    type: object
+  qrcodes.QRCodeDetail:
+    properties:
+      code:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      product_instance_id:
+        type: integer
+      redirect_url:
+        type: string
+      status:
+        type: string
+      store_id:
+        type: integer
+      updated_at:
+        type: string
+    type: object
+  qrcodes.UpdateStatusRequest:
+    properties:
+      status:
+        enum:
+        - active
+        - inactive
+        - suspended
+        - retired
+        type: string
+    required:
+    - status
     type: object
   response.ErrorBody:
     properties:
@@ -1358,6 +1433,297 @@ paths:
       summary: Update order status
       tags:
       - Orders
+  /api/v1/orders/{orderId}/instances:
+    get:
+      description: Get all product instances for a specific order
+      parameters:
+      - description: Order ID
+        in: path
+        name: orderId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/productinstances.InstanceWithQR'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List instances by order
+      tags:
+      - Product Instances
+  /api/v1/orders/{orderId}/instances/generate:
+    post:
+      description: Create product instance records and QR codes for all order items
+      parameters:
+      - description: Order ID
+        in: path
+        name: orderId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/productinstances.InstanceWithQR'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+        "409":
+          description: Conflict
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Generate product instances for an order
+      tags:
+      - Product Instances
+  /api/v1/product-instances:
+    get:
+      description: Get paginated list of product instances with optional filters
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Items per page
+        in: query
+        name: per_page
+        type: integer
+      - description: Filter by store ID
+        in: query
+        name: store_id
+        type: integer
+      - description: Filter by NFC status
+        in: query
+        name: nfc_status
+        type: string
+      - description: Filter by production status
+        in: query
+        name: production_status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/productinstances.InstanceWithQR'
+                  type: array
+                meta:
+                  $ref: '#/definitions/response.Meta'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List product instances
+      tags:
+      - Product Instances
+  /api/v1/product-instances/{id}:
+    get:
+      description: Get a single product instance with its QR code
+      parameters:
+      - description: Product Instance ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/productinstances.InstanceWithQR'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get product instance by ID
+      tags:
+      - Product Instances
+  /api/v1/product-instances/{id}/nfc-status:
+    patch:
+      consumes:
+      - application/json
+      description: Update the NFC configuration status of a product instance
+      parameters:
+      - description: Product Instance ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: NFC status data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/productinstances.UpdateNFCStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  additionalProperties:
+                    type: string
+                  type: object
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+        "422":
+          description: Unprocessable Entity
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Update NFC status
+      tags:
+      - Product Instances
   /api/v1/products:
     get:
       description: Get paginated list of products with optional search and status
@@ -1597,6 +1963,222 @@ paths:
       summary: Update product
       tags:
       - Products
+  /api/v1/qr-codes:
+    get:
+      description: Get paginated list of QR codes with optional filters
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Items per page
+        in: query
+        name: per_page
+        type: integer
+      - description: Filter by store ID
+        in: query
+        name: store_id
+        type: integer
+      - description: Filter by status (active, inactive, suspended, retired)
+        in: query
+        name: status
+        type: string
+      - description: Search by code
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/qrcodes.QRCodeDetail'
+                  type: array
+                meta:
+                  $ref: '#/definitions/response.Meta'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List QR codes
+      tags:
+      - QR Codes
+  /api/v1/qr-codes/{id}:
+    get:
+      description: Get a single QR code by its ID
+      parameters:
+      - description: QR Code ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/qrcodes.QRCodeDetail'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get QR code by ID
+      tags:
+      - QR Codes
+  /api/v1/qr-codes/{id}/download:
+    get:
+      description: Download QR code as a PNG image
+      parameters:
+      - description: QR Code ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - default: 256
+        description: Image size in pixels
+        in: query
+        name: size
+        type: integer
+      produces:
+      - image/png
+      responses:
+        "200":
+          description: QR code PNG image
+          schema:
+            type: file
+        "404":
+          description: Not Found
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Download QR code image
+      tags:
+      - QR Codes
+  /api/v1/qr-codes/{id}/status:
+    patch:
+      consumes:
+      - application/json
+      description: Update the status of a QR code
+      parameters:
+      - description: QR Code ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Status data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/qrcodes.UpdateStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  additionalProperties:
+                    type: string
+                  type: object
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+        "422":
+          description: Unprocessable Entity
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Update QR code status
+      tags:
+      - QR Codes
   /api/v1/stores:
     get:
       description: Get paginated list of stores with optional filters

@@ -16,7 +16,10 @@ import (
 	"github.com/kittu533/reputap-be/internal/database"
 	"github.com/kittu533/reputap-be/internal/middleware"
 	"github.com/kittu533/reputap-be/internal/orders"
+	"github.com/kittu533/reputap-be/internal/productinstances"
 	"github.com/kittu533/reputap-be/internal/products"
+	"github.com/kittu533/reputap-be/internal/qrcodes"
+	"github.com/kittu533/reputap-be/internal/redirect"
 	"github.com/kittu533/reputap-be/internal/response"
 	"github.com/kittu533/reputap-be/internal/stores"
 
@@ -87,6 +90,21 @@ func main() {
 	orderService := orders.NewService(orderRepo)
 	orderHandler := orders.NewHandler(orderService)
 
+	// Product Instances
+	instanceRepo := productinstances.NewRepository(db)
+	instanceService := productinstances.NewService(instanceRepo)
+	instanceHandler := productinstances.NewHandler(instanceService)
+
+	// QR Codes
+	qrRepo := qrcodes.NewRepository(db)
+	qrService := qrcodes.NewService(qrRepo, cfg.RedirectBaseURL)
+	qrHandler := qrcodes.NewHandler(qrService)
+
+	// Redirect Engine
+	redirectRepo := redirect.NewRepository(db)
+	redirectService := redirect.NewService(redirectRepo)
+	redirectHandler := redirect.NewHandler(redirectService)
+
 	// ========================================
 	// Setup router
 	// ========================================
@@ -111,6 +129,9 @@ func main() {
 	r.Get("/swagger/*", httpSwagger.Handler(
 		httpSwagger.URL("/swagger/doc.json"),
 	))
+
+	// Public redirect engine (no auth)
+	r.Get("/r/{code}", redirectHandler.Redirect)
 
 	// API v1 routes
 	r.Route("/api/v1", func(r chi.Router) {
@@ -161,6 +182,23 @@ func main() {
 				r.Patch("/{id}/status", orderHandler.UpdateStatus)
 				r.Patch("/{id}/payment-status", orderHandler.UpdatePaymentStatus)
 				r.Get("/{id}/history", orderHandler.GetStatusHistory)
+				r.Post("/{orderId}/instances/generate", instanceHandler.GenerateForOrder)
+				r.Get("/{orderId}/instances", instanceHandler.ListByOrderID)
+			})
+
+			// Product Instances
+			r.Route("/product-instances", func(r chi.Router) {
+				r.Get("/", instanceHandler.List)
+				r.Get("/{id}", instanceHandler.GetByID)
+				r.Patch("/{id}/nfc-status", instanceHandler.UpdateNFCStatus)
+			})
+
+			// QR Codes
+			r.Route("/qr-codes", func(r chi.Router) {
+				r.Get("/", qrHandler.List)
+				r.Get("/{id}", qrHandler.GetByID)
+				r.Patch("/{id}/status", qrHandler.UpdateStatus)
+				r.Get("/{id}/download", qrHandler.Download)
 			})
 		})
 	})

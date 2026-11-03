@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { OrderDetail, StatusHistory } from '~/utils/api'
+import type { OrderDetail, StatusHistory, ProductInstance } from '~/utils/api'
 
 definePageMeta({
   middleware: 'auth',
@@ -47,7 +47,7 @@ const paymentStatusOptions = [
   { label: 'Refunded', value: 'refunded' },
 ]
 
-const paymentStatusModel = ref('')
+const paymentStatusModel = ref<string | undefined>(undefined)
 
 function formatRupiah(amount: number | null): string {
   if (amount == null) return '—'
@@ -125,9 +125,65 @@ const availableTransitions = computed(() => {
   return allowedTransitions[order.value.order_status] || []
 })
 
+const instances = ref<ProductInstance[]>([])
+const instancesLoading = ref(false)
+const generateLoading = ref(false)
+
+const nfcStatusColor: Record<string, string> = {
+  not_configured: 'neutral',
+  configured: 'info',
+  tested: 'success',
+  failed: 'error',
+  replaced: 'warning',
+}
+
+const prodStatusColor: Record<string, string> = {
+  pending: 'neutral',
+  in_progress: 'info',
+  completed: 'success',
+  failed: 'error',
+}
+
+const qcStatusColor: Record<string, string> = {
+  pending: 'neutral',
+  passed: 'success',
+  failed: 'error',
+  rework: 'warning',
+}
+
+async function fetchInstances() {
+  instancesLoading.value = true
+  const response = await apiFetch<ProductInstance[]>(`/api/v1/orders/${orderId}/instances`)
+  if (response.success) {
+    instances.value = response.data || []
+  }
+  instancesLoading.value = false
+}
+
+async function generateInstances() {
+  generateLoading.value = true
+  const response = await apiFetch<ProductInstance[]>(`/api/v1/orders/${orderId}/instances/generate`, {
+    method: 'POST',
+  })
+  generateLoading.value = false
+
+  if (response.success) {
+    instances.value = response.data || []
+    toast.add({ title: 'Generated', description: `${instances.value.length} product instances created`, color: 'success' })
+  } else {
+    if (response.error?.code === 'ALREADY_GENERATED') {
+      toast.add({ title: 'Info', description: 'Instances already generated for this order', color: 'info' })
+      fetchInstances()
+    } else {
+      toast.add({ title: 'Error', description: response.error?.message || 'Generation failed', color: 'error' })
+    }
+  }
+}
+
 onMounted(() => {
   fetchOrder()
   fetchHistory()
+  fetchInstances()
 })
 </script>
 
@@ -225,6 +281,65 @@ onMounted(() => {
             <span>Total</span>
             <span>{{ formatRupiah(order.total) }}</span>
           </div>
+        </div>
+      </div>
+
+      <!-- Product Instances -->
+      <div class="rounded-lg border border-(--ui-border) p-4">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-2">
+            <h2 class="text-lg font-semibold">Product Instances</h2>
+            <UBadge v-if="instances.length > 0" :label="String(instances.length)" color="primary" variant="subtle" size="sm" />
+          </div>
+          <UButton
+            v-if="instances.length === 0"
+            label="Generate Instances"
+            icon="i-lucide-wand-2"
+            size="sm"
+            :loading="generateLoading"
+            @click="generateInstances"
+          />
+        </div>
+
+        <div v-if="instancesLoading" class="flex justify-center py-4">
+          <UIcon name="i-lucide-loader-2" class="animate-spin" />
+        </div>
+
+        <div v-else-if="instances.length === 0" class="text-sm text-(--ui-text-muted)">
+          No instances generated yet. Click "Generate Instances" to create them.
+        </div>
+
+        <div v-else class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-(--ui-border) text-left text-(--ui-text-muted)">
+                <th class="pb-2">Serial Number</th>
+                <th class="pb-2">NFC Status</th>
+                <th class="pb-2">Production</th>
+                <th class="pb-2">QC</th>
+                <th class="pb-2">QR Code</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="inst in instances" :key="inst.id" class="border-b border-(--ui-border) last:border-b-0">
+                <td class="py-2 font-mono text-xs">{{ inst.serial_number }}</td>
+                <td class="py-2">
+                  <UBadge :label="inst.nfc_status.replace(/_/g, ' ')" :color="nfcStatusColor[inst.nfc_status] || 'neutral'" variant="subtle" size="xs" class="capitalize" />
+                </td>
+                <td class="py-2">
+                  <UBadge :label="inst.production_status.replace(/_/g, ' ')" :color="prodStatusColor[inst.production_status] || 'neutral'" variant="subtle" size="xs" class="capitalize" />
+                </td>
+                <td class="py-2">
+                  <UBadge :label="inst.qc_status" :color="qcStatusColor[inst.qc_status] || 'neutral'" variant="subtle" size="xs" class="capitalize" />
+                </td>
+                <td class="py-2">
+                  <NuxtLink :to="`/qr-codes`" class="text-primary hover:underline text-xs font-mono">
+                    {{ inst.qr_code }}
+                  </NuxtLink>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
 

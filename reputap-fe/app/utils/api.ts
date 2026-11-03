@@ -122,3 +122,31 @@ export interface StatusHistory {
   notes: string | null
   created_at: string
 }
+
+export interface ProductInstance {
+  id: number
+  order_item_id: number
+  store_id: number
+  serial_number: string
+  nfc_status: string
+  nfc_configured_at: string | null
+  nfc_configured_by: number | null
+  production_status: string
+  qc_status: string
+  created_at: string
+  updated_at: string
+  qr_code_id: number
+  qr_code: string
+  qr_status: string
+}
+
+export interface QRCodeDetail {
+  id: number
+  product_instance_id: number
+  store_id: number
+  code: string
+  status: string
+  created_at: string
+  updated_at: string
+  redirect_url: string
+}

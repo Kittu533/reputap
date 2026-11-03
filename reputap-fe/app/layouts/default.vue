@@ -38,6 +38,12 @@ const items = computed<NavigationMenuItem[]>(() => [
     to: '/orders',
     active: route.path.startsWith('/orders'),
   },
+  {
+    label: 'QR Codes',
+    icon: 'i-lucide-qr-code',
+    to: '/qr-codes',
+    active: route.path.startsWith('/qr-codes'),
+  },
 ])
 
 const userMenuItems = computed<DropdownMenuItem[][]>(() => [
