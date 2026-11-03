@@ -7,49 +7,49 @@
 ## PHASE 1 — Foundation
 
 ### 1.1 Project Setup
-- ⬜ Bersihkan go.mod dari Gin/GORM dependencies
-- ⬜ Install dependencies: chi, sqlx, golang-migrate, jwt, bcrypt, godotenv, nanoid, go-qrcode, cors, validator
-- ⬜ Buat `cmd/server/main.go`
-- ⬜ Buat `internal/config/config.go`
-- ⬜ Buat `internal/database/mysql.go`
-- ⬜ Buat `docker-compose.yml` (MySQL 8)
-- ⬜ Buat `.env.example` + `.env`
-- ⬜ Buat `Makefile`
+- ✅ Bersihkan go.mod dari Gin/GORM dependencies
+- ✅ Install dependencies: chi, sqlx, golang-migrate, jwt, bcrypt, godotenv, nanoid, go-qrcode, cors, validator
+- ✅ Buat `cmd/server/main.go`
+- ✅ Buat `internal/config/config.go`
+- ✅ Buat `internal/database/mysql.go`
+- ✅ Buat `docker-compose.yml` (MySQL 8)
+- ✅ Buat `.env.example` + `.env`
+- ✅ Buat `Makefile`
 - ⬜ Test: `docker compose up` + `make run` + `GET /health` → 200
 
 ### 1.2 Database Migrations
 - ⬜ Setup golang-migrate binary/tool
-- ⬜ Migration 000001: roles, permissions, role_permissions
-- ⬜ Migration 000002: users
-- ⬜ Migration 000003: customers
-- ⬜ Migration 000004: stores
-- ⬜ Migration 000005: products
-- ⬜ Migration 000006: orders, order_items, order_status_history
-- ⬜ Migration 000007: product_instances, qr_codes
-- ⬜ Migration 000008: scan_logs
-- ⬜ Migration 000009: design_assets
-- ⬜ Migration 000010: production_jobs
-- ⬜ Migration 000011: quality_controls
-- ⬜ Migration 000012: shipments
-- ⬜ Migration 000013: audit_logs
-- ⬜ Seed: default roles (super_admin, admin, operator)
-- ⬜ Seed: default permissions
-- ⬜ Seed: default super admin user
+- ✅ Migration 000001: roles, permissions, role_permissions
+- ✅ Migration 000002: users
+- ✅ Migration 000003: customers
+- ✅ Migration 000004: stores
+- ✅ Migration 000005: products
+- ✅ Migration 000006: orders, order_items, order_status_history
+- ✅ Migration 000007: product_instances, qr_codes
+- ✅ Migration 000008: scan_logs
+- ✅ Migration 000009: design_assets
+- ✅ Migration 000010: production_jobs
+- ✅ Migration 000011: quality_controls
+- ✅ Migration 000012: shipments
+- ✅ Migration 000013: audit_logs
+- ✅ Seed: default roles (super_admin, admin, operator)
+- ✅ Seed: default permissions
+- ✅ Seed: default super admin user
 - ⬜ Test: `make migrate-up` dan `make migrate-down`
 
 ### 1.3 API Foundation
-- ⬜ `internal/response/response.go` — Success(), Error(), Paginated()
-- ⬜ `internal/middleware/logger.go` — slog request logging
-- ⬜ `internal/middleware/cors.go` — CORS config
-- ⬜ `internal/middleware/recoverer.go` — panic recovery
-- ⬜ `pkg/pagination/pagination.go` — page, per_page, offset helper
+- ✅ `internal/response/response.go` — Success(), Error(), Paginated()
+- ✅ `internal/middleware/logger.go` — slog request logging
+- ✅ `internal/middleware/cors.go` — CORS config
+- ✅ `internal/middleware/recoverer.go` — panic recovery
+- ✅ `pkg/pagination/pagination.go` — page, per_page, offset helper
 
 ### 1.4 Authentication
-- ⬜ `internal/auth/model.go` — LoginRequest, TokenResponse, Claims
-- ⬜ `internal/auth/repository.go` — FindUserByEmail
-- ⬜ `internal/auth/service.go` — Login, GenerateTokens, RefreshToken, ValidateToken
-- ⬜ `internal/auth/handler.go` — POST /login, POST /logout, GET /me, POST /refresh
-- ⬜ `internal/middleware/auth.go` — JWT validation middleware
+- ✅ `internal/auth/model.go` — LoginRequest, TokenResponse, Claims
+- ✅ `internal/auth/repository.go` — FindUserByEmail
+- ✅ `internal/auth/service.go` — Login, GenerateTokens, RefreshToken, ValidateToken
+- ✅ `internal/auth/handler.go` — POST /login, POST /logout, GET /me, POST /refresh
+- ✅ `internal/auth/middleware.go` — JWT validation middleware + RequirePermission
 - ⬜ Test: login → get token → access protected endpoint → refresh → logout
 
 ### 1.5 Login Page (Frontend)
