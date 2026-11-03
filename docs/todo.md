@@ -15,10 +15,10 @@
 - ✅ Buat `docker-compose.yml` (MySQL 8)
 - ✅ Buat `.env.example` + `.env`
 - ✅ Buat `Makefile`
-- ⬜ Test: `docker compose up` + `make run` + `GET /health` → 200
+- ✅ Test: `docker compose up` + `make run` + `GET /health` → 200
 
 ### 1.2 Database Migrations
-- ⬜ Setup golang-migrate binary/tool
+- ✅ Setup golang-migrate binary/tool
 - ✅ Migration 000001: roles, permissions, role_permissions
 - ✅ Migration 000002: users
 - ✅ Migration 000003: customers
@@ -35,7 +35,7 @@
 - ✅ Seed: default roles (super_admin, admin, operator)
 - ✅ Seed: default permissions
 - ✅ Seed: default super admin user
-- ⬜ Test: `make migrate-up` dan `make migrate-down`
+- ✅ Test: `make migrate-up` dan `make migrate-down`
 
 ### 1.3 API Foundation
 - ✅ `internal/response/response.go` — Success(), Error(), Paginated()
@@ -50,63 +50,59 @@
 - ✅ `internal/auth/service.go` — Login, GenerateTokens, RefreshToken, ValidateToken
 - ✅ `internal/auth/handler.go` — POST /login, POST /logout, GET /me, POST /refresh
 - ✅ `internal/auth/middleware.go` — JWT validation middleware + RequirePermission
-- ⬜ Test: login → get token → access protected endpoint → refresh → logout
+- ✅ Test: login → get token → access protected endpoint → refresh → logout
 
 ### 1.5 Login Page (Frontend)
-- ⬜ `app/composables/useApi.ts` — fetch wrapper with auth headers
-- ⬜ `app/composables/useAuth.ts` — login, logout, token management
-- ⬜ `app/middleware/auth.ts` — route guard
-- ⬜ `app/pages/login.vue`
-- ⬜ `app/layouts/admin.vue` — sidebar navigation skeleton
+- ✅ `app/composables/useApi.ts` — fetch wrapper with auth headers + auto token refresh
+- ✅ `app/composables/useAuth.ts` — login, logout, token management (cookie-based)
+- ✅ `app/middleware/auth.ts` — route guard
+- ✅ `app/pages/login.vue` — centered card with email/password form
+- ✅ `app/layouts/default.vue` — admin sidebar with USidebar + UNavigationMenu
 
 ---
 
 ## PHASE 2 — Core Business Management
 
 ### 2.1 Customer Module (Backend)
-- ⬜ `internal/customers/model.go`
-- ⬜ `internal/customers/repository.go` — Create, GetByID, List, Update, Delete, Search
-- ⬜ `internal/customers/service.go` — validation, code generation (CUST-001)
-- ⬜ `internal/customers/handler.go` — GET, POST, GET/:id, PUT/:id, DELETE/:id
-- ⬜ Test: CRUD + search + pagination
+- ✅ `internal/customers/model.go`
+- ✅ `internal/customers/repository.go` — Create, GetByID, List, Update, Delete, Search
+- ✅ `internal/customers/service.go` — validation, code generation (CUST-001)
+- ✅ `internal/customers/handler.go` — GET, POST, GET/:id, PUT/:id, DELETE/:id
+- ✅ Test: CRUD + search + pagination (CUST-001 created)
 
 ### 2.2 Store Module (Backend)
-- ⬜ `internal/stores/model.go`
-- ⬜ `internal/stores/repository.go`
-- ⬜ `internal/stores/service.go` — URL validation, slug generation
-- ⬜ `internal/stores/handler.go`
-- ⬜ `pkg/validator/url.go` — Google domain allowlist validator
-- ⬜ Test: CRUD + URL validation + status change
+- ✅ `internal/stores/model.go`
+- ✅ `internal/stores/repository.go`
+- ✅ `internal/stores/service.go` — URL validation, slug generation
+- ✅ `internal/stores/handler.go`
+- ✅ `pkg/validator/url.go` — Google domain allowlist validator
+- ✅ Test: CRUD + URL validation + status change (STORE-001 created with slug)
 
 ### 2.3 Product Module (Backend)
-- ⬜ `internal/products/model.go`
-- ⬜ `internal/products/repository.go`
-- ⬜ `internal/products/service.go`
-- ⬜ `internal/products/handler.go`
-- ⬜ Test: CRUD + SKU uniqueness
+- ✅ `internal/products/model.go`
+- ✅ `internal/products/repository.go`
+- ✅ `internal/products/service.go`
+- ✅ `internal/products/handler.go`
+- ✅ Test: CRUD + SKU uniqueness (RPT-STANDARD-001 created)
 
 ### 2.4 Order Module (Backend)
-- ⬜ `internal/orders/model.go` — Order, OrderItem, StatusHistory, CreateOrderRequest
-- ⬜ `internal/orders/repository.go` — full CRUD + status history
-- ⬜ `internal/orders/service.go` — status transition rules, validation, order_number gen
-- ⬜ `internal/orders/handler.go` — CRUD + PATCH status + GET history
-- ⬜ Test: create order → transition through statuses → verify history
+- ✅ `internal/orders/model.go` — Order, OrderItem, StatusHistory, CreateOrderRequest
+- ✅ `internal/orders/repository.go` — full CRUD + status history
+- ✅ `internal/orders/service.go` — status transition rules, validation, order_number gen
+- ✅ `internal/orders/handler.go` — CRUD + PATCH status + GET history
+- ✅ Test: create order → transition through statuses → verify history (ORD-202611-0001)
 
 ### 2.5 Frontend Pages
-- ⬜ `app/pages/customers/index.vue` — list, search, create modal
-- ⬜ `app/pages/customers/[id].vue` — detail, edit
-- ⬜ `app/components/customers/CustomerForm.vue`
-- ⬜ `app/pages/stores/index.vue`
-- ⬜ `app/pages/stores/[id].vue`
-- ⬜ `app/components/stores/StoreForm.vue`
-- ⬜ `app/pages/products/index.vue`
-- ⬜ `app/pages/products/[id].vue`
-- ⬜ `app/components/products/ProductForm.vue`
-- ⬜ `app/pages/orders/index.vue`
-- ⬜ `app/pages/orders/[id].vue`
-- ⬜ `app/components/orders/OrderForm.vue`
-- ⬜ `app/components/orders/OrderStatusBadge.vue`
-- ⬜ `app/components/orders/OrderTimeline.vue`
+- ✅ `app/pages/customers/index.vue` — list, search, create/edit slideover
+- ✅ `app/components/customers/CustomerForm.vue`
+- ✅ `app/pages/stores/index.vue` — list, search, status filter, create/edit slideover
+- ✅ `app/components/stores/StoreForm.vue`
+- ✅ `app/pages/products/index.vue` — list, search, status filter, create/edit slideover
+- ✅ `app/components/products/ProductForm.vue`
+- ✅ `app/pages/orders/index.vue` — list, search, status/payment filters, create slideover
+- ✅ `app/pages/orders/[id].vue` — detail, status transitions, payment update, history timeline
+- ✅ `app/components/orders/OrderForm.vue`
+- ✅ `app/components/orders/OrderStatusBadge.vue`
 
 ---
 
@@ -196,4 +192,4 @@
 
 ## CURRENT FOCUS
 
-> **Start with Phase 1.1 — Project Setup**
+> **Phase 3 — QR & NFC Engine** (backend: identifier gen, product instances, QR codes, redirect engine, NFC tracking)

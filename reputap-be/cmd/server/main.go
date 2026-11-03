@@ -8,38 +8,49 @@ import (
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	httpSwagger "github.com/swaggo/http-swagger/v2"
 
 	"github.com/kittu533/reputap-be/internal/auth"
 	"github.com/kittu533/reputap-be/internal/config"
+	"github.com/kittu533/reputap-be/internal/customers"
 	"github.com/kittu533/reputap-be/internal/database"
 	"github.com/kittu533/reputap-be/internal/middleware"
+	"github.com/kittu533/reputap-be/internal/orders"
+	"github.com/kittu533/reputap-be/internal/products"
 	"github.com/kittu533/reputap-be/internal/response"
+	"github.com/kittu533/reputap-be/internal/stores"
+
+	_ "github.com/kittu533/reputap-be/docs"
 )
 
-// 💡 Go Concept: main()
-// Every Go program starts at main(). This is the entry point.
-// There's no framework "bootstrapping" — you wire everything yourself.
-// This gives you full control and makes the code explicit.
+//	@title						REPUTAP API
+//	@version					1.0
+//	@description				Internal API for REPUTAP — Smart Review Stand management system.
+//	@description				Manages customers, stores, orders, QR codes, NFC, production, QC, shipping, and scan analytics.
+//
+//	@contact.name				REPUTAP Team
+//	@contact.email				admin@reputap.id
+//
+//	@host						localhost:8081
+//	@BasePath					/
+//
+//	@securityDefinitions.apikey	BearerAuth
+//	@in							header
+//	@name						Authorization
+//	@description				Enter your JWT token with the `Bearer ` prefix. Example: `Bearer eyJhbGci...`
 func main() {
-	// Setup structured logging
-	// 💡 Go Concept: slog (structured logging)
-	// slog is Go's built-in structured logger (since Go 1.21).
-	// It outputs JSON logs which are great for production (parseable by log tools).
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
 	}))
 	slog.SetDefault(logger)
 
-	// Load configuration
 	cfg := config.Load()
 	slog.Info("configuration loaded", "env", cfg.AppEnv, "port", cfg.AppPort)
 
-	// Validate critical config
 	if cfg.JWTSecret == "" || cfg.JWTSecret == "your-256-bit-secret-change-this-in-production" {
 		slog.Warn("JWT_SECRET is not set or using default value. Please set a secure secret for production.")
 	}
 
-	// Connect to database
 	db, err := database.Connect(cfg.DSN())
 	if err != nil {
 		slog.Error("failed to connect to database", "error", err)
@@ -49,36 +60,46 @@ func main() {
 
 	// ========================================
 	// Initialize modules
-	// 💡 Go Concept: Manual dependency injection
-	// We create each layer manually and pass dependencies.
-	// No magic DI container — everything is explicit.
-	// This makes the code easy to trace: "where does this come from?"
 	// ========================================
 
-	// Auth module
+	// Auth
 	authRepo := auth.NewRepository(db)
 	authService := auth.NewService(authRepo, cfg)
 	authHandler := auth.NewHandler(authService)
 
+	// Customers
+	customerRepo := customers.NewRepository(db)
+	customerService := customers.NewService(customerRepo)
+	customerHandler := customers.NewHandler(customerService)
+
+	// Stores
+	storeRepo := stores.NewRepository(db)
+	storeService := stores.NewService(storeRepo)
+	storeHandler := stores.NewHandler(storeService)
+
+	// Products
+	productRepo := products.NewRepository(db)
+	productService := products.NewService(productRepo)
+	productHandler := products.NewHandler(productService)
+
+	// Orders
+	orderRepo := orders.NewRepository(db)
+	orderService := orders.NewService(orderRepo)
+	orderHandler := orders.NewHandler(orderService)
+
 	// ========================================
 	// Setup router
-	// 💡 Go Concept: Chi Router
-	// Chi is a lightweight HTTP router for Go.
-	// It's composable: you can nest routers, apply middleware per-route.
-	// r.Route("/path", func(r chi.Router) { ... }) creates a sub-router.
-	// r.Use(middleware) applies middleware to all routes in that group.
-	// r.Get/Post/Put/Patch/Delete register routes.
 	// ========================================
 	r := chi.NewRouter()
 
-	// Global middleware (applied to ALL routes)
+	// Global middleware
 	r.Use(cors.Handler(middleware.CORS()))
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(chimiddleware.RealIP)
 	r.Use(chimiddleware.RequestID)
 
-	// Health check (no auth needed)
+	// Health check
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		response.JSON(w, http.StatusOK, map[string]string{
 			"status":  "ok",
@@ -86,20 +107,18 @@ func main() {
 		})
 	})
 
-	// Public redirect endpoint (no auth needed)
-	// Will be registered when redirect module is built
-	// r.Get("/r/{code}", redirectHandler.Redirect)
+	// Swagger UI
+	r.Get("/swagger/*", httpSwagger.Handler(
+		httpSwagger.URL("/swagger/doc.json"),
+	))
 
 	// API v1 routes
 	r.Route("/api/v1", func(r chi.Router) {
-		// --- Public routes (no auth) ---
+		// Public routes
 		r.Post("/auth/login", authHandler.Login)
 		r.Post("/auth/refresh", authHandler.Refresh)
 
-		// --- Protected routes (auth required) ---
-		// 💡 Go Concept: Route groups with middleware
-		// r.Group creates a new group that inherits the parent's middleware
-		// and adds its own. Here, all routes inside require JWT auth.
+		// Protected routes
 		r.Group(func(r chi.Router) {
 			r.Use(auth.Middleware(authService))
 
@@ -107,18 +126,48 @@ func main() {
 			r.Get("/auth/me", authHandler.Me)
 			r.Post("/auth/logout", authHandler.Logout)
 
-			// Module routes will be registered here as they're built:
-			// r.Route("/customers", func(r chi.Router) { ... })
-			// r.Route("/stores", func(r chi.Router) { ... })
-			// r.Route("/products", func(r chi.Router) { ... })
-			// r.Route("/orders", func(r chi.Router) { ... })
-			// etc.
+			// Customers
+			r.Route("/customers", func(r chi.Router) {
+				r.Get("/", customerHandler.List)
+				r.Post("/", customerHandler.Create)
+				r.Get("/{id}", customerHandler.GetByID)
+				r.Put("/{id}", customerHandler.Update)
+				r.Delete("/{id}", customerHandler.Delete)
+			})
+
+			// Stores
+			r.Route("/stores", func(r chi.Router) {
+				r.Get("/", storeHandler.List)
+				r.Post("/", storeHandler.Create)
+				r.Get("/{id}", storeHandler.GetByID)
+				r.Put("/{id}", storeHandler.Update)
+				r.Patch("/{id}/status", storeHandler.UpdateStatus)
+				r.Put("/{id}/review-url", storeHandler.UpdateReviewURL)
+			})
+
+			// Products
+			r.Route("/products", func(r chi.Router) {
+				r.Get("/", productHandler.List)
+				r.Post("/", productHandler.Create)
+				r.Get("/{id}", productHandler.GetByID)
+				r.Put("/{id}", productHandler.Update)
+			})
+
+			// Orders
+			r.Route("/orders", func(r chi.Router) {
+				r.Get("/", orderHandler.List)
+				r.Post("/", orderHandler.Create)
+				r.Get("/{id}", orderHandler.GetByID)
+				r.Patch("/{id}/status", orderHandler.UpdateStatus)
+				r.Patch("/{id}/payment-status", orderHandler.UpdatePaymentStatus)
+				r.Get("/{id}/history", orderHandler.GetStatusHistory)
+			})
 		})
 	})
 
 	// Start server
 	addr := ":" + cfg.AppPort
-	slog.Info("server starting", "addr", addr)
+	slog.Info("server starting", "addr", addr, "swagger", "http://localhost:"+cfg.AppPort+"/swagger/index.html")
 	if err := http.ListenAndServe(addr, r); err != nil {
 		slog.Error("server failed", "error", err)
 		os.Exit(1)

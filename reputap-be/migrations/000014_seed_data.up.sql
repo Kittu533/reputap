@@ -75,4 +75,4 @@ SELECT 3, id FROM permissions WHERE name IN (
 -- Seed default super admin (password: admin123)
 -- bcrypt hash for 'admin123'
 INSERT INTO users (name, email, password_hash, role_id, status) VALUES
-('Super Admin', 'admin@reputap.id', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 1, 'active');
+('Super Admin', 'admin@reputap.id', '$2a$10$BWefn4Lz1nFfOA92nVSqFuOhUPCI/RXFxTEBz0l6G6hOxHPEBli7e', 1, 'active');
