@@ -4,14 +4,14 @@ import (
 	"context"
 	"strings"
 
-	"github.com/jmoiron/sqlx"
+	"github.com/kittu533/reputap-be/internal/database"
 )
 
 type Repository struct {
-	db *sqlx.DB
+	db *database.DB
 }
 
-func NewRepository(db *sqlx.DB) *Repository {
+func NewRepository(db *database.DB) *Repository {
 	return &Repository{db: db}
 }
 
@@ -21,7 +21,7 @@ func (r *Repository) Create(ctx context.Context, asset *DesignAsset) error {
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
 
-	result, err := r.db.ExecContext(ctx, query,
+	id, err := r.db.InsertID(ctx, query,
 		asset.OrderID,
 		asset.StoreID,
 		asset.FilePath,
@@ -36,12 +36,7 @@ func (r *Repository) Create(ctx context.Context, asset *DesignAsset) error {
 		return err
 	}
 
-	id, err := result.LastInsertId()
-	if err != nil {
-		return err
-	}
-
-	asset.ID = uint64(id)
+	asset.ID = id
 	return nil
 }
 

@@ -3,11 +3,12 @@ export PATH := $(HOME)/.bun/bin:$(PATH)
 .PHONY: dev dev-be dev-fe db migrate
 
 db:
-	docker compose up -d
+	docker compose up -d postgres
 
 migrate:
 	@for f in $$(ls -1 reputap-be/migrations/*.up.sql | sort); do \
-		docker exec -i reputap-mysql mysql -ureputap -psecret reputap < "$$f"; \
+		echo "Migrating: $$f"; \
+		docker exec -i reputap-postgres psql -U reputap -d reputap < "$$f"; \
 	done
 
 dev-be:

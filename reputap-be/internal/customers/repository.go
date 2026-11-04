@@ -6,14 +6,14 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/jmoiron/sqlx"
+	"github.com/kittu533/reputap-be/internal/database"
 )
 
 type Repository struct {
-	db *sqlx.DB
+	db *database.DB
 }
 
-func NewRepository(db *sqlx.DB) *Repository {
+func NewRepository(db *database.DB) *Repository {
 	return &Repository{db: db}
 }
 
@@ -23,7 +23,7 @@ func (r *Repository) Create(ctx context.Context, customer *Customer) error {
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
 
-	result, err := r.db.ExecContext(ctx, query,
+	id, err := r.db.InsertID(ctx, query,
 		customer.CustomerCode,
 		customer.Name,
 		customer.BusinessName,
@@ -38,12 +38,7 @@ func (r *Repository) Create(ctx context.Context, customer *Customer) error {
 		return err
 	}
 
-	id, err := result.LastInsertId()
-	if err != nil {
-		return err
-	}
-
-	customer.ID = uint64(id)
+	customer.ID = id
 	return nil
 }
 

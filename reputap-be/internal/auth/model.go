@@ -12,9 +12,9 @@ type LoginRequest struct {
 
 // TokenResponse is returned after successful login or token refresh
 type TokenResponse struct {
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-	ExpiresIn    int64  `json:"expires_in"`
+	AccessToken  string   `json:"access_token"`
+	RefreshToken string   `json:"refresh_token"`
+	ExpiresIn    int64    `json:"expires_in"`
 	User         UserInfo `json:"user"`
 }
 
@@ -33,7 +33,7 @@ type UserWithPassword struct {
 	ID           uint64 `db:"id"`
 	Name         string `db:"name"`
 	Email        string `db:"email"`
-	PasswordHash string `db:"password_hash"`
+	PasswordHash string `db:"password_hash" json:"-"`
 	RoleID       uint64 `db:"role_id"`
 	RoleName     string `db:"role_name"`
 	Status       string `db:"status"`
@@ -67,6 +67,6 @@ type Permission struct {
 
 // LoginAttempt tracks the last login time
 type LoginAttempt struct {
-	UserID    uint64
-	LoginAt   time.Time
+	UserID  uint64
+	LoginAt time.Time
 }

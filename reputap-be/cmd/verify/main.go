@@ -5,18 +5,18 @@ import (
 	"fmt"
 	"log"
 
-	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/lib/pq"
 )
 
 func main() {
-	db, err := sql.Open("mysql", "root:@tcp(localhost:3306)/reputap")
+	db, err := sql.Open("postgres", "host=localhost port=5433 user=reputap password=secret dbname=reputap sslmode=disable")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer db.Close()
 
 	// List tables
-	rows, err := db.Query("SHOW TABLES")
+	rows, err := db.Query("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name")
 	if err != nil {
 		log.Fatal(err)
 	}

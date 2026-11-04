@@ -1,5 +1,5 @@
-CREATE TABLE customers (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS customers (
+    id BIGSERIAL PRIMARY KEY,
     customer_code VARCHAR(20) NOT NULL UNIQUE,
     name VARCHAR(150) NOT NULL,
     business_name VARCHAR(200),
@@ -9,9 +9,10 @@ CREATE TABLE customers (
     city VARCHAR(100),
     province VARCHAR(100),
     notes TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_customers_code (customer_code),
-    INDEX idx_customers_phone (phone),
-    INDEX idx_customers_email (email)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_customers_code ON customers (customer_code);
+CREATE INDEX IF NOT EXISTS idx_customers_phone ON customers (phone);
+CREATE INDEX IF NOT EXISTS idx_customers_email ON customers (email);

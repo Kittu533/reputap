@@ -7,14 +7,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jmoiron/sqlx"
+	"github.com/kittu533/reputap-be/internal/database"
 )
 
 type Repository struct {
-	db *sqlx.DB
+	db *database.DB
 }
 
-func NewRepository(db *sqlx.DB) *Repository {
+func NewRepository(db *database.DB) *Repository {
 	return &Repository{db: db}
 }
 
@@ -24,7 +24,7 @@ func (r *Repository) Create(ctx context.Context, order *Order) error {
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
 
-	result, err := r.db.ExecContext(ctx, query,
+	id, err := r.db.InsertID(ctx, query,
 		order.OrderNumber,
 		order.CustomerID,
 		order.StoreID,
@@ -40,12 +40,7 @@ func (r *Repository) Create(ctx context.Context, order *Order) error {
 		return err
 	}
 
-	id, err := result.LastInsertId()
-	if err != nil {
-		return err
-	}
-
-	order.ID = uint64(id)
+	order.ID = id
 	return nil
 }
 
@@ -56,7 +51,7 @@ func (r *Repository) CreateItems(ctx context.Context, items []OrderItem) error {
 	`
 
 	for i := range items {
-		result, err := r.db.ExecContext(ctx, query,
+		id, err := r.db.InsertID(ctx, query,
 			items[i].OrderID,
 			items[i].ProductID,
 			items[i].Quantity,
@@ -67,12 +62,7 @@ func (r *Repository) CreateItems(ctx context.Context, items []OrderItem) error {
 			return err
 		}
 
-		id, err := result.LastInsertId()
-		if err != nil {
-			return err
-		}
-
-		items[i].ID = uint64(id)
+		items[i].ID = id
 	}
 
 	return nil
@@ -183,7 +173,7 @@ func (r *Repository) CreateStatusHistory(ctx context.Context, history *StatusHis
 		VALUES (?, ?, ?, ?, ?)
 	`
 
-	result, err := r.db.ExecContext(ctx, query,
+	id, err := r.db.InsertID(ctx, query,
 		history.OrderID,
 		history.FromStatus,
 		history.ToStatus,
@@ -194,12 +184,7 @@ func (r *Repository) CreateStatusHistory(ctx context.Context, history *StatusHis
 		return err
 	}
 
-	id, err := result.LastInsertId()
-	if err != nil {
-		return err
-	}
-
-	history.ID = uint64(id)
+	history.ID = id
 	return nil
 }
 

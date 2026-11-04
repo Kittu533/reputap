@@ -3,25 +3,16 @@ package auth
 import (
 	"context"
 
-	"github.com/jmoiron/sqlx"
+	"github.com/kittu533/reputap-be/internal/database"
 )
 
 // Repository handles all database operations for authentication.
-//
-// 💡 Go Concept: Repository pattern
-// The repository is the ONLY layer that talks to the database.
-// It uses SQLX which lets you write raw SQL but maps results to structs
-// using `db:"column_name"` struct tags (see model.go).
 type Repository struct {
-	db *sqlx.DB
+	db *database.DB
 }
 
 // NewRepository creates a new auth repository.
-//
-// 💡 Go Concept: Constructor function
-// Go doesn't have constructors. Instead, we use "New" functions
-// that return a pointer to the struct. This is the standard pattern.
-func NewRepository(db *sqlx.DB) *Repository {
+func NewRepository(db *database.DB) *Repository {
 	return &Repository{db: db}
 }
 

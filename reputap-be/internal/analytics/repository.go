@@ -7,16 +7,16 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/jmoiron/sqlx"
+	"github.com/kittu533/reputap-be/internal/database"
 )
 
 var ErrStoreNotFound = errors.New("store not found")
 
 type Repository struct {
-	db *sqlx.DB
+	db *database.DB
 }
 
-func NewRepository(db *sqlx.DB) *Repository {
+func NewRepository(db *database.DB) *Repository {
 	return &Repository{db: db}
 }
 
@@ -65,10 +65,10 @@ func (r *Repository) GetOverview(ctx context.Context) (*OverviewResponse, error)
 	var pStats periodStats
 	err = r.db.GetContext(ctx, &pStats, `
 		SELECT
-			COALESCE(SUM(CASE WHEN DATE(scanned_at) = CURDATE() THEN 1 ELSE 0 END), 0) as today_scans,
-			COALESCE(SUM(CASE WHEN DATE(scanned_at) = CURDATE() - INTERVAL 1 DAY THEN 1 ELSE 0 END), 0) as yesterday_scans,
-			COALESCE(SUM(CASE WHEN YEARWEEK(scanned_at, 1) = YEARWEEK(CURDATE(), 1) THEN 1 ELSE 0 END), 0) as this_week_scans,
-			COALESCE(SUM(CASE WHEN YEAR(scanned_at) = YEAR(CURDATE()) AND MONTH(scanned_at) = MONTH(CURDATE()) THEN 1 ELSE 0 END), 0) as this_month_scans
+			COALESCE(SUM(CASE WHEN DATE(scanned_at) = CURRENT_DATE THEN 1 ELSE 0 END), 0) as today_scans,
+			COALESCE(SUM(CASE WHEN DATE(scanned_at) = CURRENT_DATE - INTERVAL '1 day' THEN 1 ELSE 0 END), 0) as yesterday_scans,
+			COALESCE(SUM(CASE WHEN TO_CHAR(scanned_at, 'IYYY-IW') = TO_CHAR(CURRENT_DATE, 'IYYY-IW') THEN 1 ELSE 0 END), 0) as this_week_scans,
+			COALESCE(SUM(CASE WHEN TO_CHAR(scanned_at, 'YYYY-MM') = TO_CHAR(CURRENT_DATE, 'YYYY-MM') THEN 1 ELSE 0 END), 0) as this_month_scans
 		FROM scan_logs
 	`)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
@@ -107,11 +107,11 @@ func (r *Repository) GetScansTimeSeries(ctx context.Context, params ScansParams)
 	var dateFormat string
 	switch params.Period {
 	case "weekly":
-		dateFormat = "%x-W%v"
+		dateFormat = "IYYY-\"W\"IW"
 	case "monthly":
-		dateFormat = "%Y-%m"
+		dateFormat = "YYYY-MM"
 	default:
-		dateFormat = "%Y-%m-%d"
+		dateFormat = "YYYY-MM-DD"
 	}
 
 	var conditions []string
@@ -139,16 +139,16 @@ func (r *Repository) GetScansTimeSeries(ctx context.Context, params ScansParams)
 
 	query := fmt.Sprintf(`
 		SELECT
-			DATE_FORMAT(sl.scanned_at, '%s') as date,
+			TO_CHAR(sl.scanned_at, '%s') as date,
 			COUNT(sl.id) as total,
 			COALESCE(SUM(CASE WHEN sl.source = 'qr' THEN 1 ELSE 0 END), 0) as qr_count,
 			COALESCE(SUM(CASE WHEN sl.source = 'nfc' THEN 1 ELSE 0 END), 0) as nfc_count
 		FROM scan_logs sl
 		JOIN qr_codes q ON sl.qr_code_id = q.id
 		%s
-		GROUP BY date
+		GROUP BY TO_CHAR(sl.scanned_at, '%s')
 		ORDER BY date ASC
-	`, dateFormat, whereClause)
+	`, dateFormat, whereClause, dateFormat)
 
 	var points []TimeSeriesPoint
 	err := r.db.SelectContext(ctx, &points, query, args...)
@@ -178,7 +178,7 @@ func (r *Repository) GetStoreAnalytics(ctx context.Context, storeID uint64) (*St
 	}
 	var sr storeRow
 	err := r.db.GetContext(ctx, &sr, `
-		SELECT s.name, c.name as customer_name, s.review_url, s.status, s.review_url_verified
+		SELECT s.name, c.name as customer_name, COALESCE(s.review_url, '') as review_url, s.status, s.review_url_verified
 		FROM stores s
 		JOIN customers c ON s.customer_id = c.id
 		WHERE s.id = ?
@@ -236,14 +236,14 @@ func (r *Repository) GetStoreAnalytics(ctx context.Context, storeID uint64) (*St
 	// 4. Daily scans last 30 days
 	err = r.db.SelectContext(ctx, &resp.DailyScans, `
 		SELECT
-			DATE_FORMAT(sl.scanned_at, '%Y-%m-%d') as date,
+			TO_CHAR(sl.scanned_at, 'YYYY-MM-DD') as date,
 			COUNT(sl.id) as total,
 			COALESCE(SUM(CASE WHEN sl.source = 'qr' THEN 1 ELSE 0 END), 0) as qr_count,
 			COALESCE(SUM(CASE WHEN sl.source = 'nfc' THEN 1 ELSE 0 END), 0) as nfc_count
 		FROM scan_logs sl
 		JOIN qr_codes q ON sl.qr_code_id = q.id
-		WHERE q.store_id = ? AND sl.scanned_at >= CURDATE() - INTERVAL 30 DAY
-		GROUP BY date
+		WHERE q.store_id = ? AND sl.scanned_at >= CURRENT_DATE - INTERVAL '30 days'
+		GROUP BY TO_CHAR(sl.scanned_at, 'YYYY-MM-DD')
 		ORDER BY date ASC
 	`, storeID)
 	if err != nil {

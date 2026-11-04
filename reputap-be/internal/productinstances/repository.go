@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/kittu533/reputap-be/internal/database"
 )
 
 type OrderItemInfo struct {
@@ -16,10 +17,10 @@ type OrderItemInfo struct {
 }
 
 type Repository struct {
-	db *sqlx.DB
+	db *database.DB
 }
 
-func NewRepository(db *sqlx.DB) *Repository {
+func NewRepository(db *database.DB) *Repository {
 	return &Repository{db: db}
 }
 
@@ -31,26 +32,23 @@ func (r *Repository) Create(ctx context.Context, tx *sqlx.Tx, instance *ProductI
 	query := `
 		INSERT INTO product_instances (order_item_id, store_id, serial_number, nfc_status, production_status, qc_status)
 		VALUES (?, ?, ?, ?, ?, ?)
+		RETURNING id
 	`
 
-	result, err := tx.ExecContext(ctx, query,
+	var id uint64
+	err := tx.QueryRowContext(ctx, tx.Rebind(query),
 		instance.OrderItemID,
 		instance.StoreID,
 		instance.SerialNumber,
 		instance.NFCStatus,
 		instance.ProductionStatus,
 		instance.QCStatus,
-	)
+	).Scan(&id)
 	if err != nil {
 		return err
 	}
 
-	id, err := result.LastInsertId()
-	if err != nil {
-		return err
-	}
-
-	instance.ID = uint64(id)
+	instance.ID = id
 	return nil
 }
 
@@ -60,7 +58,7 @@ func (r *Repository) CreateQRCode(ctx context.Context, tx *sqlx.Tx, instanceID u
 		VALUES (?, ?, ?, 'active')
 	`
 
-	_, err := tx.ExecContext(ctx, query, instanceID, storeID, code)
+	_, err := tx.ExecContext(ctx, tx.Rebind(query), instanceID, storeID, code)
 	return err
 }
 

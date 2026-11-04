@@ -4,34 +4,36 @@ import (
 	"context"
 	"strings"
 
-	"github.com/jmoiron/sqlx"
+	"github.com/kittu533/reputap-be/internal/database"
 )
 
 type Repository struct {
-	db *sqlx.DB
+	db *database.DB
 }
 
-func NewRepository(db *sqlx.DB) *Repository {
+func NewRepository(db *database.DB) *Repository {
 	return &Repository{db: db}
 }
 
 func (r *Repository) Create(ctx context.Context, shipment *Shipment) error {
 	query := `
 		INSERT INTO shipments (order_id, recipient_name, recipient_address, recipient_phone, courier, tracking_number)
-		VALUES (:order_id, :recipient_name, :recipient_address, :recipient_phone, :courier, :tracking_number)
+		VALUES (?, ?, ?, ?, ?, ?)
 	`
 
-	result, err := r.db.NamedExecContext(ctx, query, shipment)
+	id, err := r.db.InsertID(ctx, query,
+		shipment.OrderID,
+		shipment.RecipientName,
+		shipment.RecipientAddress,
+		shipment.RecipientPhone,
+		shipment.Courier,
+		shipment.TrackingNumber,
+	)
 	if err != nil {
 		return err
 	}
 
-	id, err := result.LastInsertId()
-	if err != nil {
-		return err
-	}
-
-	shipment.ID = uint64(id)
+	shipment.ID = id
 	return nil
 }
 

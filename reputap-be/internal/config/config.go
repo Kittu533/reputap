@@ -17,6 +17,7 @@ type Config struct {
 	DBName           string
 	DBUser           string
 	DBPassword       string
+	DBSSLMode        string
 	JWTSecret        string
 	JWTAccessExpiry  time.Duration
 	JWTRefreshExpiry time.Duration
@@ -50,10 +51,11 @@ func Load() *Config {
 		AppPort:          getEnv("APP_PORT", "8080"),
 		AppEnv:           getEnv("APP_ENV", "development"),
 		DBHost:           getEnv("DB_HOST", "localhost"),
-		DBPort:           getEnv("DB_PORT", "3306"),
+		DBPort:           getEnv("DB_PORT", "5433"),
 		DBName:           getEnv("DB_NAME", "reputap"),
 		DBUser:           getEnv("DB_USER", "reputap"),
 		DBPassword:       getEnv("DB_PASSWORD", "secret"),
+		DBSSLMode:        getEnv("DB_SSLMODE", "disable"),
 		JWTSecret:        getEnv("JWT_SECRET", ""),
 		JWTAccessExpiry:  accessExpiry,
 		JWTRefreshExpiry: refreshExpiry,
@@ -65,7 +67,7 @@ func Load() *Config {
 }
 
 func (c *Config) DSN() string {
-	return c.DBUser + ":" + c.DBPassword + "@tcp(" + c.DBHost + ":" + c.DBPort + ")/" + c.DBName + "?parseTime=true&loc=Local"
+	return "host=" + c.DBHost + " port=" + c.DBPort + " user=" + c.DBUser + " password=" + c.DBPassword + " dbname=" + c.DBName + " sslmode=" + c.DBSSLMode
 }
 
 func getEnv(key, fallback string) string {
