@@ -1,0 +1,5 @@
+bin/
+server.exe
+.env
+uploads/*
+!uploads/.gitkeep
