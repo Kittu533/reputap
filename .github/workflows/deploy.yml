@@ -1,10 +1,15 @@
-name: Deploy Backend to VPS
+name: CI / CD Backend
 
 on:
   push:
     branches:
       - main
-      - develop
+    paths:
+      - 'reputap-be/**'
+      - '.github/workflows/deploy.yml'
+  pull_request:
+    branches:
+      - main
     paths:
       - 'reputap-be/**'
       - '.github/workflows/deploy.yml'
@@ -24,13 +29,14 @@ jobs:
           go-version: '1.23'
           cache-dependency-path: reputap-be/go.sum
 
-      - name: Build Linux Binaries
+      - name: Build Linux Binaries (CI Check)
         working-directory: reputap-be
         run: |
           CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o server ./cmd/server
           CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o migrate ./cmd/migrate
 
-      - name: Deploy to VPS via SSH
+      - name: Deploy to VPS via SSH (CD on Merge)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
         env:
           SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
           HOST: ${{ secrets.VPS_HOST }}
