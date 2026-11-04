@@ -230,90 +230,130 @@ async function submitUpdate() {
 </script>
 
 <template>
-  <div>
-    <div class="flex items-center justify-between mb-6">
-      <h1 class="text-2xl font-bold">Production Queue</h1>
-      <UButton icon="i-lucide-plus" label="Create Job" @click="createOpen = true" />
-    </div>
+  <div class="space-y-6">
+    <CommonPageHeader
+      title="Production Queue"
+      description="Track manufacturing assembly, NFC encoding, and hardware inspection jobs."
+      :breadcrumbs="[{ label: 'Production' }]"
+    >
+      <template #actions>
+        <CommonButton icon="i-lucide-plus" @click="createOpen = true">
+          Create Job
+        </CommonButton>
+      </template>
+    </CommonPageHeader>
 
-    <div class="flex items-center gap-4 mb-4">
-      <USelect
-        v-model="statusFilter"
-        :items="statusOptions"
-        placeholder="All Statuses"
-        class="w-44"
-      />
-    </div>
+    <CommonDataTable
+      v-model:page="page"
+      :data="data"
+      :columns="columns"
+      :total="total"
+      :per-page="perPage"
+      :loading="loading"
+      :show-search="false"
+      empty-title="No production jobs"
+      empty-description="There are currently no production jobs matching your filter."
+      empty-action-label="Create Job"
+      @empty-action="createOpen = true"
+    >
+      <template #filters>
+        <USelect
+          v-model="statusFilter"
+          :items="statusOptions"
+          placeholder="All Statuses"
+          class="w-44"
+        />
+      </template>
+    </CommonDataTable>
 
-    <UTable :data="data" :columns="columns" :loading="loading" class="w-full" />
-
-    <div v-if="total > perPage" class="flex justify-end mt-4">
-      <UPagination v-model:page="page" :items-per-page="perPage" :total="total" />
-    </div>
-
-    <!-- Create Job Slideover -->
-    <USlideover v-model:open="createOpen" title="Create Job" side="right">
-      <template #body>
-        <div class="flex flex-col gap-4 p-4">
-          <UFormField label="Product Instance ID">
-            <UInput v-model.number="createForm.product_instance_id" type="number" placeholder="Enter product instance ID" />
-          </UFormField>
-          <UFormField label="Notes">
-            <UTextarea v-model="createForm.notes" placeholder="Optional notes" />
-          </UFormField>
-          <div class="flex justify-end gap-2 pt-4">
-            <UButton label="Cancel" color="neutral" variant="outline" @click="createOpen = false" />
-            <UButton label="Create" :loading="creating" @click="submitCreate" />
-          </div>
+    <!-- Create Job Modal -->
+    <CommonModal
+      v-model:open="createOpen"
+      title="Create Production Job"
+      description="Initiate an assembly and encoding job for a product instance."
+    >
+      <div class="space-y-4">
+        <CommonFormField label="Product Instance ID" required>
+          <CommonInput
+            v-model.number="createForm.product_instance_id"
+            type="number"
+            placeholder="Enter product instance ID"
+          />
+        </CommonFormField>
+        <CommonFormField label="Notes">
+          <textarea
+            v-model="createForm.notes"
+            rows="3"
+            placeholder="Optional production notes"
+            class="w-full p-3 text-sm bg-white border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+          />
+        </CommonFormField>
+      </div>
+      <template #footer>
+        <div class="flex items-center justify-end gap-2 w-full">
+          <CommonButton variant="outline" @click="createOpen = false">
+            Cancel
+          </CommonButton>
+          <CommonButton :loading="creating" @click="submitCreate">
+            Create Job
+          </CommonButton>
         </div>
       </template>
-    </USlideover>
+    </CommonModal>
 
-    <!-- Update Status Slideover -->
-    <USlideover v-model:open="updateOpen" title="Update Job Status" side="right">
-      <template #body>
-        <div v-if="selectedJob" class="flex flex-col gap-4 p-4">
-          <div class="text-sm text-gray-500">
-            Job #{{ selectedJob.id }} — {{ selectedJob.serial_number }}
-          </div>
+    <!-- Update Status Modal -->
+    <CommonModal
+      v-model:open="updateOpen"
+      title="Update Job Status"
+      :description="selectedJob ? `Job #${selectedJob.id} — ${selectedJob.serial_number}` : ''"
+    >
+      <div v-if="selectedJob" class="space-y-4">
+        <CommonFormField label="New Status" required>
+          <USelect
+            v-model="updateForm.status"
+            :items="getNextStatuses(selectedJob.status)"
+            placeholder="Select status"
+            class="w-full"
+          />
+        </CommonFormField>
 
-          <UFormField label="New Status">
-            <USelect
-              v-model="updateForm.status"
-              :items="getNextStatuses(selectedJob.status)"
-              placeholder="Select status"
-              class="w-full"
-            />
-          </UFormField>
+        <CommonFormField label="Notes">
+          <textarea
+            v-model="updateForm.notes"
+            rows="3"
+            placeholder="Optional status notes"
+            class="w-full p-3 text-sm bg-white border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+          />
+        </CommonFormField>
 
-          <UFormField label="Notes">
-            <UTextarea v-model="updateForm.notes" placeholder="Optional notes" />
-          </UFormField>
-
-          <div>
-            <p class="text-sm font-medium mb-2">Checklist</p>
-            <div class="flex flex-col gap-2">
-              <label
-                v-for="item in checklistItems"
-                :key="item.key"
-                class="flex items-center gap-2 text-sm"
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Checklist</label>
+          <div class="space-y-2 bg-slate-50 p-3 rounded-xl border border-slate-200/60">
+            <label
+              v-for="item in checklistItems"
+              :key="item.key"
+              class="flex items-center gap-2.5 text-xs font-medium text-slate-700 cursor-pointer"
+            >
+              <input
+                v-model="updateForm.checklist_data[item.key]"
+                type="checkbox"
+                class="size-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500/20"
               >
-                <input
-                  v-model="updateForm.checklist_data[item.key]"
-                  type="checkbox"
-                  class="rounded border-gray-300"
-                >
-                {{ item.label }}
-              </label>
-            </div>
-          </div>
-
-          <div class="flex justify-end gap-2 pt-4">
-            <UButton label="Cancel" color="neutral" variant="outline" @click="updateOpen = false" />
-            <UButton label="Save" :loading="updating" @click="submitUpdate" />
+              <span>{{ item.label }}</span>
+            </label>
           </div>
         </div>
+      </div>
+      <template #footer>
+        <div class="flex items-center justify-end gap-2 w-full">
+          <CommonButton variant="outline" @click="updateOpen = false">
+            Cancel
+          </CommonButton>
+          <CommonButton :loading="updating" @click="submitUpdate">
+            Save Changes
+          </CommonButton>
+        </div>
       </template>
-    </USlideover>
+    </CommonModal>
   </div>
 </template>

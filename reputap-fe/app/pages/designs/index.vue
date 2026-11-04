@@ -242,50 +242,81 @@ async function submitUpload() {
 </script>
 
 <template>
-  <div>
-    <div class="flex items-center justify-between mb-6">
-      <h1 class="text-2xl font-bold">Design Assets</h1>
-      <UButton icon="i-lucide-upload" label="Upload Design" @click="slideoverOpen = true" />
-    </div>
+  <div class="space-y-6">
+    <CommonPageHeader
+      title="Design Assets"
+      description="Manage custom artwork, mockups, and client approval status."
+      :breadcrumbs="[{ label: 'Designs' }]"
+    >
+      <template #actions>
+        <CommonButton icon="i-lucide-upload" @click="slideoverOpen = true">
+          Upload Design
+        </CommonButton>
+      </template>
+    </CommonPageHeader>
 
-    <div class="flex items-center gap-4 mb-4">
-      <USelect
-        v-model="statusFilter"
-        :items="statusOptions"
-        placeholder="All Statuses"
-        class="w-48"
-      />
-    </div>
+    <CommonDataTable
+      v-model:page="page"
+      :data="data"
+      :columns="columns"
+      :total="total"
+      :per-page="perPage"
+      :loading="loading"
+      :show-search="false"
+      empty-title="No design assets found"
+      empty-description="There are no design files uploaded yet."
+      empty-action-label="Upload Design"
+      @empty-action="slideoverOpen = true"
+    >
+      <template #filters>
+        <USelect
+          v-model="statusFilter"
+          :items="statusOptions"
+          placeholder="All Statuses"
+          class="w-48"
+        />
+      </template>
+    </CommonDataTable>
 
-    <UTable :data="data" :columns="columns" :loading="loading" class="w-full" />
-
-    <div v-if="total > perPage" class="flex justify-end mt-4">
-      <UPagination v-model:page="page" :items-per-page="perPage" :total="total" />
-    </div>
-
-    <USlideover v-model:open="slideoverOpen" title="Upload Design" side="right">
-      <template #body>
-        <div class="flex flex-col gap-4 p-4">
-          <UFormField label="File">
-            <input
-              type="file"
-              accept=".png,.jpg,.jpeg,.svg,.pdf"
-              class="block w-full text-sm file:mr-4 file:rounded-md file:border-0 file:bg-primary-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-primary-700 hover:file:bg-primary-100"
-              @change="onFileChange"
-            >
-          </UFormField>
-          <UFormField label="Order ID">
-            <UInput v-model.number="uploadForm.order_id" type="number" placeholder="Enter order ID" />
-          </UFormField>
-          <UFormField label="Store ID">
-            <UInput v-model.number="uploadForm.store_id" type="number" placeholder="Enter store ID" />
-          </UFormField>
-          <div class="flex justify-end gap-2 pt-4">
-            <UButton label="Cancel" color="neutral" variant="outline" @click="slideoverOpen = false" />
-            <UButton label="Upload" :loading="uploading" @click="submitUpload" />
-          </div>
+    <CommonModal
+      v-model:open="slideoverOpen"
+      title="Upload Design"
+      description="Upload a new artwork or mockup asset for an order and store."
+    >
+      <div class="space-y-4">
+        <CommonFormField label="File" required>
+          <input
+            type="file"
+            accept=".png,.jpg,.jpeg,.svg,.pdf"
+            class="block w-full text-sm file:mr-4 file:rounded-xl file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:text-xs file:font-semibold file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
+            @change="onFileChange"
+          >
+        </CommonFormField>
+        <CommonFormField label="Order ID" required>
+          <CommonInput
+            v-model.number="uploadForm.order_id"
+            type="number"
+            placeholder="Enter order ID"
+          />
+        </CommonFormField>
+        <CommonFormField label="Store ID" required>
+          <CommonInput
+            v-model.number="uploadForm.store_id"
+            type="number"
+            placeholder="Enter store ID"
+          />
+        </CommonFormField>
+      </div>
+      <template #footer>
+        <div class="flex items-center justify-end gap-2 w-full">
+          <CommonButton variant="outline" @click="slideoverOpen = false">
+            Cancel
+          </CommonButton>
+          <CommonButton :loading="uploading" @click="submitUpload">
+            Upload
+          </CommonButton>
         </div>
       </template>
-    </USlideover>
+    </CommonModal>
   </div>
 </template>

@@ -10,10 +10,12 @@ import (
 	"github.com/go-chi/cors"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 
+	"github.com/kittu533/reputap-be/internal/analytics"
 	"github.com/kittu533/reputap-be/internal/audit"
 	"github.com/kittu533/reputap-be/internal/auth"
 	"github.com/kittu533/reputap-be/internal/config"
 	"github.com/kittu533/reputap-be/internal/customers"
+	"github.com/kittu533/reputap-be/internal/dashboard"
 	"github.com/kittu533/reputap-be/internal/database"
 	"github.com/kittu533/reputap-be/internal/design"
 	"github.com/kittu533/reputap-be/internal/middleware"
@@ -134,6 +136,16 @@ func main() {
 	auditRepo := audit.NewRepository(db)
 	auditService := audit.NewService(auditRepo)
 	auditHandler := audit.NewHandler(auditService)
+
+	// Dashboard
+	dashboardRepo := dashboard.NewRepository(db)
+	dashboardService := dashboard.NewService(dashboardRepo)
+	dashboardHandler := dashboard.NewHandler(dashboardService)
+
+	// Analytics
+	analyticsRepo := analytics.NewRepository(db)
+	analyticsService := analytics.NewService(analyticsRepo)
+	analyticsHandler := analytics.NewHandler(analyticsService)
 
 	// ========================================
 	// Setup router
@@ -269,6 +281,19 @@ func main() {
 
 			// Audit Logs
 			r.Get("/audit-logs", auditHandler.List)
+
+			// Dashboard
+			r.Route("/dashboard", func(r chi.Router) {
+				r.Get("/summary", dashboardHandler.Summary)
+				r.Get("/recent-activities", dashboardHandler.RecentActivities)
+			})
+
+			// Analytics
+			r.Route("/analytics", func(r chi.Router) {
+				r.Get("/overview", analyticsHandler.Overview)
+				r.Get("/scans", analyticsHandler.Scans)
+				r.Get("/stores/{id}", analyticsHandler.StoreAnalytics)
+			})
 		})
 	})
 

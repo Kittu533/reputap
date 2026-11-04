@@ -97,50 +97,27 @@ onMounted(() => fetchData())
       :breadcrumbs="[{ label: 'Customers' }]"
     >
       <template #actions>
-        <NuxtLink
-          to="/customers/new"
-          class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition-colors"
-        >
-          <UIcon name="i-lucide-plus" class="size-4" />
-          <span>Add Customer</span>
-        </NuxtLink>
+        <CommonButton to="/customers/new" icon="i-lucide-plus">
+          Add Customer
+        </CommonButton>
       </template>
     </CommonPageHeader>
 
-    <!-- Search & Filter Card -->
-    <div class="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-      <div class="relative w-full max-w-sm">
-        <UIcon name="i-lucide-search" class="size-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-        <input
-          v-model="search"
-          type="text"
-          placeholder="Search by name, code, email, city..."
-          class="w-full pl-9 pr-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-        >
-      </div>
-
-      <div class="text-xs font-semibold text-slate-500">
-        Total: <span class="text-slate-900 font-bold">{{ total }}</span> clients
-      </div>
-    </div>
-
-    <!-- Table Card -->
-    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-      <div v-if="loading" class="p-12 text-center text-slate-400">
-        <UIcon name="i-lucide-loader-2" class="size-6 animate-spin mx-auto mb-2 text-blue-600" />
-        <span class="text-xs font-medium">Loading customers...</span>
-      </div>
-
-      <div v-else-if="data.length === 0">
-        <CommonEmptyState
-          title="No customers found"
-          description="There are no registered customers matching your criteria. Click below to add a new client."
-          action-label="Add Customer"
-          @action="navigateTo('/customers/new')"
-        />
-      </div>
-
-      <div v-else class="overflow-x-auto">
+    <!-- Reusable Data Table -->
+    <CommonDataTable
+      v-model:search="search"
+      v-model:page="page"
+      :data="data"
+      :total="total"
+      :per-page="perPage"
+      :loading="loading"
+      search-placeholder="Search by name, code, email, city..."
+      empty-title="No customers found"
+      empty-description="There are no registered customers matching your criteria. Click below to add a new client."
+      empty-action-label="Add Customer"
+      @empty-action="navigateTo('/customers/new')"
+    >
+      <template #table>
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="border-b border-slate-100 bg-slate-50/70 text-[11px] font-bold uppercase tracking-wider text-slate-400">
@@ -198,23 +175,8 @@ onMounted(() => fetchData())
             </tr>
           </tbody>
         </table>
-      </div>
-
-      <!-- Pagination -->
-      <div
-        v-if="total > perPage"
-        class="p-4 border-t border-slate-100 flex items-center justify-between"
-      >
-        <span class="text-xs text-slate-400">
-          Showing {{ ((page - 1) * perPage) + 1 }} to {{ Math.min(page * perPage, total) }} of {{ total }}
-        </span>
-        <UPagination
-          v-model:page="page"
-          :items-per-page="perPage"
-          :total="total"
-        />
-      </div>
-    </div>
+      </template>
+    </CommonDataTable>
 
     <!-- Confirmation Delete Modal -->
     <CommonConfirmModal

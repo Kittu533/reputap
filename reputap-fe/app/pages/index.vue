@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Order, Customer, Store, ProductionJob, QCRecord, Shipment } from '~/utils/api'
+import type { DashboardSummary, RecentActivity, Order } from '~/utils/api'
 
 definePageMeta({
   middleware: 'auth',
@@ -9,36 +9,9 @@ const { apiFetch } = useApi()
 const { user } = useAuth()
 
 const loading = ref(true)
-
-// Stats
-const orders = ref<Order[]>([])
-const customers = ref<Customer[]>([])
-const stores = ref<Store[]>([])
-const productionJobs = ref<ProductionJob[]>([])
-const qcRecords = ref<QCRecord[]>([])
-const shipments = ref<Shipment[]>([])
-
-const totalRevenue = computed(() => {
-  return orders.value.reduce((acc, curr) => acc + (Number(curr.total) || 0), 0)
-})
-
-const activeStoresCount = computed(() => {
-  return stores.value.filter(s => s.status === 'active').length
-})
-
-const verifiedStoresCount = computed(() => {
-  return stores.value.filter(s => s.review_url_verified).length
-})
-
-const pendingProductionCount = computed(() => {
-  return productionJobs.value.filter(j => j.status === 'pending' || j.status === 'in_progress').length
-})
-
-const qcPassRate = computed(() => {
-  if (qcRecords.value.length === 0) return 100
-  const passed = qcRecords.value.filter(q => q.result === 'passed').length
-  return Math.round((passed / qcRecords.value.length) * 100)
-})
+const summary = ref<DashboardSummary | null>(null)
+const recentActivities = ref<RecentActivity[]>([])
+const recentOrders = ref<Order[]>([])
 
 function formatRupiah(amount: number) {
   return new Intl.NumberFormat('id-ID', {
@@ -57,24 +30,32 @@ function formatDate(dateStr: string) {
   })
 }
 
+function formatTime(dateStr: string) {
+  if (!dateStr) return ''
+  return new Date(dateStr).toLocaleTimeString('id-ID', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
 async function loadDashboardData() {
   loading.value = true
   try {
-    const [ordersRes, custRes, storesRes, prodRes, qcRes, shipRes] = await Promise.all([
+    const [summaryRes, activitiesRes, ordersRes] = await Promise.all([
+      apiFetch<DashboardSummary>('/api/v1/dashboard/summary'),
+      apiFetch<RecentActivity[]>('/api/v1/dashboard/recent-activities?limit=8'),
       apiFetch<Order[]>('/api/v1/orders', { query: { per_page: 5 } }),
-      apiFetch<Customer[]>('/api/v1/customers', { query: { per_page: 50 } }),
-      apiFetch<Store[]>('/api/v1/stores', { query: { per_page: 50 } }),
-      apiFetch<ProductionJob[]>('/api/v1/production/jobs', { query: { per_page: 50 } }),
-      apiFetch<QCRecord[]>('/api/v1/quality-controls', { query: { per_page: 50 } }),
-      apiFetch<Shipment[]>('/api/v1/shipments', { query: { per_page: 50 } }),
     ])
 
-    if (ordersRes.success) orders.value = ordersRes.data || []
-    if (custRes.success) customers.value = custRes.data || []
-    if (storesRes.success) stores.value = storesRes.data || []
-    if (prodRes.success) productionJobs.value = prodRes.data || []
-    if (qcRes.success) qcRecords.value = qcRes.data || []
-    if (shipRes.success) shipments.value = shipRes.data || []
+    if (summaryRes.success && summaryRes.data) {
+      summary.value = summaryRes.data
+    }
+    if (activitiesRes.success && activitiesRes.data) {
+      recentActivities.value = activitiesRes.data
+    }
+    if (ordersRes.success && ordersRes.data) {
+      recentOrders.value = ordersRes.data
+    }
   }
   finally {
     loading.value = false
@@ -101,7 +82,7 @@ onMounted(() => {
           Welcome back, {{ user?.name || 'Admin' }} 👋
         </h1>
         <p class="mt-1 text-sm text-slate-500 leading-relaxed max-w-2xl">
-          Here is your Done-for-You smart review stand manufacturing and operations overview today.
+          Here is your smart review stand operations, redirect analytics, and manufacturing pipeline overview today.
         </p>
       </div>
 
@@ -114,6 +95,13 @@ onMounted(() => {
           :loading="loading"
           @click="loadDashboardData"
         />
+        <NuxtLink
+          to="/analytics"
+          class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-slate-900 hover:bg-slate-800 text-white shadow-xs transition-colors"
+        >
+          <UIcon name="i-lucide-bar-chart-3" class="size-4" />
+          <span>Analytics</span>
+        </NuxtLink>
         <NuxtLink
           to="/orders/new"
           class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition-colors"
@@ -136,14 +124,14 @@ onMounted(() => {
         </div>
         <div class="mt-3">
           <p class="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
-            {{ formatRupiah(totalRevenue) }}
+            {{ formatRupiah(summary?.orders.total_revenue || 0) }}
           </p>
           <div class="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
             <span class="font-semibold text-emerald-600 inline-flex items-center">
               <UIcon name="i-lucide-trending-up" class="size-3.5 mr-0.5" />
               Active
             </span>
-            <span>across {{ orders.length }} recorded orders</span>
+            <span>across {{ summary?.orders.total || 0 }} recorded orders</span>
           </div>
         </div>
       </div>
@@ -158,12 +146,13 @@ onMounted(() => {
         </div>
         <div class="mt-3">
           <p class="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
-            {{ orders.length }}
+            {{ summary?.orders.total || 0 }}
           </p>
           <div class="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
             <NuxtLink to="/orders" class="font-semibold text-blue-600 hover:underline">
-              View order pipeline &rarr;
+              View pipeline &rarr;
             </NuxtLink>
+            <span class="text-slate-400">• {{ summary?.orders.by_status?.completed || 0 }} completed</span>
           </div>
         </div>
       </div>
@@ -178,92 +167,44 @@ onMounted(() => {
         </div>
         <div class="mt-3">
           <p class="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
-            {{ activeStoresCount }} <span class="text-base font-normal text-slate-400">/ {{ stores.length }}</span>
+            {{ summary?.stores.active || 0 }}
+            <span class="text-base font-normal text-slate-400">/ {{ summary?.stores.total || 0 }} active</span>
           </p>
           <div class="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
-            <span class="font-medium text-emerald-600">{{ verifiedStoresCount }} verified URLs</span>
-            <span>from {{ customers.length }} clients</span>
+            <span class="font-medium text-emerald-600">{{ summary?.stores.review_url_verified || 0 }} verified URLs</span>
+            <span>from {{ summary?.customers.total || 0 }} clients</span>
           </div>
         </div>
       </div>
 
-      <!-- Stat 4: Production & QC -->
+      <!-- Stat 4: Smart Scans & Redirects -->
       <div class="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs hover:border-slate-300 transition-all">
         <div class="flex items-center justify-between">
-          <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Production & QC</span>
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Scans & Taps</span>
           <div class="size-10 rounded-xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center">
-            <UIcon name="i-lucide-factory" class="size-5" />
+            <UIcon name="i-lucide-qr-code" class="size-5" />
           </div>
         </div>
         <div class="mt-3">
           <p class="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
-            {{ pendingProductionCount }} <span class="text-base font-normal text-slate-400">active jobs</span>
+            {{ summary?.scans.total || 0 }}
           </p>
-          <div class="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
-            <span class="font-semibold text-teal-600">{{ qcPassRate }}% QC pass rate</span>
-            <span>across {{ qcRecords.length }} checks</span>
+          <div class="mt-2 flex items-center gap-2 text-xs text-slate-500">
+            <span class="font-semibold text-blue-600">{{ summary?.scans.qr_count || 0 }} QR</span>
+            <span>•</span>
+            <span class="font-semibold text-emerald-600">{{ summary?.scans.nfc_count || 0 }} NFC</span>
+            <span>•</span>
+            <span class="text-slate-400">{{ summary?.qr_codes.active || 0 }} live stands</span>
           </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Done-For-You Workflow Stepper Pipeline -->
-    <div class="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs">
-      <div class="flex items-center justify-between mb-4">
-        <div>
-          <h2 class="text-base font-bold text-slate-900">Done-for-You Manufacturing & Fulfilment Flow</h2>
-          <p class="text-xs text-slate-500">End-to-end status flow from customer order to live smart stand delivery</p>
-        </div>
-        <span class="text-xs font-medium text-slate-400 hidden sm:inline">5-Stage System</span>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-5 gap-3 pt-2">
-        <div class="flex flex-col p-3 rounded-xl border border-slate-200/80 bg-slate-50/60">
-          <div class="flex items-center gap-2 mb-1">
-            <span class="size-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center">1</span>
-            <span class="text-xs font-semibold text-slate-900">Order & Store</span>
-          </div>
-          <p class="text-[11px] text-slate-500">Review URL verified, order confirmed</p>
-        </div>
-
-        <div class="flex flex-col p-3 rounded-xl border border-slate-200/80 bg-slate-50/60">
-          <div class="flex items-center gap-2 mb-1">
-            <span class="size-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center">2</span>
-            <span class="text-xs font-semibold text-slate-900">Design Asset</span>
-          </div>
-          <p class="text-[11px] text-slate-500">Stand artwork uploaded & approved</p>
-        </div>
-
-        <div class="flex flex-col p-3 rounded-xl border border-slate-200/80 bg-slate-50/60">
-          <div class="flex items-center gap-2 mb-1">
-            <span class="size-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center">3</span>
-            <span class="text-xs font-semibold text-slate-900">Production</span>
-          </div>
-          <p class="text-[11px] text-slate-500">Acrylic cut, printed, NFC & QR encoded</p>
-        </div>
-
-        <div class="flex flex-col p-3 rounded-xl border border-slate-200/80 bg-slate-50/60">
-          <div class="flex items-center gap-2 mb-1">
-            <span class="size-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center">4</span>
-            <span class="text-xs font-semibold text-slate-900">Quality Control</span>
-          </div>
-          <p class="text-[11px] text-slate-500">Physical & scan hardware inspection</p>
-        </div>
-
-        <div class="flex flex-col p-3 rounded-xl border border-slate-200/80 bg-slate-50/60">
-          <div class="flex items-center gap-2 mb-1">
-            <span class="size-6 rounded-full bg-emerald-600 text-white text-xs font-bold flex items-center justify-center">5</span>
-            <span class="text-xs font-semibold text-slate-900">Shipping</span>
-          </div>
-          <p class="text-[11px] text-slate-500">Packed, courier tracking & delivered</p>
         </div>
       </div>
     </div>
 
     <!-- Main 2-Column Section -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <!-- Left Column: Recent Orders (2 cols) -->
+      <!-- Left Column: Recent Orders & Quick Overview (2 cols) -->
       <div class="lg:col-span-2 space-y-6">
+        <!-- Recent Orders Table -->
         <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
           <div class="px-6 py-5 border-b border-slate-200/80 flex items-center justify-between">
             <div>
@@ -279,7 +220,7 @@ onMounted(() => {
             </NuxtLink>
           </div>
 
-          <div v-if="orders.length === 0" class="p-8 text-center">
+          <div v-if="recentOrders.length === 0" class="p-8 text-center">
             <CommonEmptyState
               title="No orders yet"
               description="Create your first client order to start the Done-For-You manufacturing pipeline."
@@ -302,7 +243,7 @@ onMounted(() => {
               </thead>
               <tbody class="divide-y divide-slate-100 text-sm">
                 <tr
-                  v-for="ord in orders"
+                  v-for="ord in recentOrders"
                   :key="ord.id"
                   class="hover:bg-slate-50/70 transition-colors"
                 >
@@ -338,48 +279,61 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- Operations Snapshot (Production & QC) -->
-        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-6">
+        <!-- Done-For-You Workflow Stepper Pipeline -->
+        <div class="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs">
           <div class="flex items-center justify-between mb-4">
             <div>
-              <h2 class="text-base font-bold text-slate-900">Factory Production Queue</h2>
-              <p class="text-xs text-slate-500 mt-0.5">Physical stands currently in manufacturing</p>
+              <h2 class="text-base font-bold text-slate-900">Done-for-You Manufacturing & Fulfilment Flow</h2>
+              <p class="text-xs text-slate-500">End-to-end status flow from customer order to live smart stand delivery</p>
             </div>
-            <NuxtLink to="/production" class="text-xs font-semibold text-blue-600 hover:underline">
-              Go to queue &rarr;
-            </NuxtLink>
+            <span class="text-xs font-medium text-slate-400 hidden sm:inline">5-Stage System</span>
           </div>
 
-          <div v-if="productionJobs.length === 0" class="text-sm text-slate-400 py-6 text-center">
-            No active production jobs at this moment.
-          </div>
-
-          <div v-else class="space-y-3">
-            <div
-              v-for="job in productionJobs.slice(0, 4)"
-              :key="job.id"
-              class="flex items-center justify-between p-3.5 rounded-xl border border-slate-200/70 bg-slate-50/50 hover:bg-slate-50 transition-colors"
-            >
-              <div class="flex items-center gap-3">
-                <div class="size-9 rounded-lg bg-white border border-slate-200 text-slate-700 flex items-center justify-center font-mono font-bold text-xs">
-                  #{{ job.id }}
-                </div>
-                <div>
-                  <p class="text-xs font-bold text-slate-900 font-mono">
-                    {{ job.serial_number }}
-                  </p>
-                  <p class="text-[11px] text-slate-400">
-                    Started: {{ job.started_at ? formatDate(job.started_at) : 'Not started' }}
-                  </p>
-                </div>
+          <div class="grid grid-cols-1 md:grid-cols-5 gap-3 pt-2">
+            <div class="flex flex-col p-3 rounded-xl border border-slate-200/80 bg-slate-50/60">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="size-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center">1</span>
+                <span class="text-xs font-semibold text-slate-900">Order & Store</span>
               </div>
-              <CommonStatusBadge :status="job.status" size="xs" />
+              <p class="text-[11px] text-slate-500">Review URL verified, order confirmed</p>
+            </div>
+
+            <div class="flex flex-col p-3 rounded-xl border border-slate-200/80 bg-slate-50/60">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="size-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center">2</span>
+                <span class="text-xs font-semibold text-slate-900">Design Asset</span>
+              </div>
+              <p class="text-[11px] text-slate-500">Stand artwork uploaded & approved</p>
+            </div>
+
+            <div class="flex flex-col p-3 rounded-xl border border-slate-200/80 bg-slate-50/60">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="size-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center">3</span>
+                <span class="text-xs font-semibold text-slate-900">Production</span>
+              </div>
+              <p class="text-[11px] text-slate-500">Acrylic cut, printed, NFC & QR encoded</p>
+            </div>
+
+            <div class="flex flex-col p-3 rounded-xl border border-slate-200/80 bg-slate-50/60">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="size-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center">4</span>
+                <span class="text-xs font-semibold text-slate-900">Quality Control</span>
+              </div>
+              <p class="text-[11px] text-slate-500">Physical & scan hardware inspection</p>
+            </div>
+
+            <div class="flex flex-col p-3 rounded-xl border border-slate-200/80 bg-slate-50/60">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="size-6 rounded-full bg-emerald-600 text-white text-xs font-bold flex items-center justify-center">5</span>
+                <span class="text-xs font-semibold text-slate-900">Shipping</span>
+              </div>
+              <p class="text-[11px] text-slate-500">Packed, courier tracking & delivered</p>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Right Column: Shortcuts & Quick Info (1 col) -->
+      <!-- Right Column: Shortcuts & Recent Activities (1 col) -->
       <div class="space-y-6">
         <!-- Quick Action Shortcuts -->
         <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5">
@@ -414,59 +368,53 @@ onMounted(() => {
             </NuxtLink>
 
             <NuxtLink
-              to="/stores/new"
+              to="/analytics"
               class="flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:border-blue-300 hover:bg-blue-50/40 text-slate-700 hover:text-blue-700 transition-all group"
             >
               <div class="size-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center group-hover:scale-105 transition-transform">
-                <UIcon name="i-lucide-store" class="size-4" />
+                <UIcon name="i-lucide-bar-chart-3" class="size-4" />
               </div>
               <div class="text-left">
-                <p class="text-xs font-bold text-slate-900 group-hover:text-blue-700">Register Store</p>
-                <p class="text-[11px] text-slate-400">Add store location & Google URL</p>
-              </div>
-            </NuxtLink>
-
-            <NuxtLink
-              to="/designs/new"
-              class="flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:border-blue-300 hover:bg-blue-50/40 text-slate-700 hover:text-blue-700 transition-all group"
-            >
-              <div class="size-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center group-hover:scale-105 transition-transform">
-                <UIcon name="i-lucide-upload" class="size-4" />
-              </div>
-              <div class="text-left">
-                <p class="text-xs font-bold text-slate-900 group-hover:text-blue-700">Upload Artwork</p>
-                <p class="text-[11px] text-slate-400">Attach stand design for order</p>
+                <p class="text-xs font-bold text-slate-900 group-hover:text-blue-700">Scan Analytics</p>
+                <p class="text-[11px] text-slate-400">View real-time QR & NFC scan charts</p>
               </div>
             </NuxtLink>
           </div>
         </div>
 
-        <!-- Smart Stand Hardware & Redirect Status -->
+        <!-- Recent Activities Feed -->
         <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5">
-          <h2 class="text-base font-bold text-slate-900 mb-1">NFC & QR Hardware</h2>
-          <p class="text-xs text-slate-400 mb-3">Live redirect engine status</p>
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h2 class="text-base font-bold text-slate-900">Recent Activities</h2>
+              <p class="text-xs text-slate-400 mt-0.5">Live audit log stream</p>
+            </div>
+            <NuxtLink to="/audit-logs" class="text-xs font-semibold text-blue-600 hover:underline">
+              View all &rarr;
+            </NuxtLink>
+          </div>
 
-          <div class="space-y-3">
-            <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200/70">
-              <div class="flex items-center gap-2.5">
-                <div class="size-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span class="text-xs font-semibold text-slate-700">302 Redirect Engine</span>
+          <div v-if="recentActivities.length === 0" class="text-xs text-slate-400 py-6 text-center">
+            No recent activity recorded yet.
+          </div>
+
+          <div v-else class="space-y-3">
+            <div
+              v-for="act in recentActivities"
+              :key="act.id"
+              class="flex items-start gap-3 p-2.5 rounded-xl border border-slate-100 hover:bg-slate-50/70 transition-colors"
+            >
+              <div class="size-7 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center shrink-0 mt-0.5">
+                <UIcon name="i-lucide-activity" class="size-3.5" />
               </div>
-              <span class="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                Active (Async Log)
-              </span>
-            </div>
-
-            <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200/70">
-              <span class="text-xs text-slate-600">Total Active Shipments</span>
-              <span class="text-xs font-bold text-slate-900">{{ shipments.length }} shipments</span>
-            </div>
-
-            <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200/70">
-              <span class="text-xs text-slate-600">Audit Logs Recorded</span>
-              <NuxtLink to="/audit-logs" class="text-xs font-semibold text-blue-600 hover:underline">
-                View logs &rarr;
-              </NuxtLink>
+              <div class="min-w-0 flex-1">
+                <p class="text-xs font-semibold text-slate-800 truncate">
+                  {{ act.user_name }}: {{ act.action }}
+                </p>
+                <p class="text-[11px] text-slate-400 mt-0.5">
+                  {{ act.entity_type }} #{{ act.entity_id || '-' }} • {{ formatDate(act.created_at) }} {{ formatTime(act.created_at) }}
+                </p>
+              </div>
             </div>
           </div>
         </div>

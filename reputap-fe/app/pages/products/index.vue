@@ -81,7 +81,7 @@ const columns: TableColumn<Product>[] = [
           color: 'neutral',
           variant: 'ghost',
           size: 'xs',
-          onClick: (e: Event) => { e.stopPropagation(); openEdit(row.original) },
+          to: `/products/${row.original.id}/edit`,
         }),
       ])
     },
@@ -113,62 +113,44 @@ watch(search, () => {
 watch(statusFilter, () => { page.value = 1; fetchData() })
 watch(page, () => fetchData())
 onMounted(() => fetchData())
-
-const slideoverOpen = ref(false)
-const editingProduct = ref<Product | null>(null)
-
-function openCreate() {
-  editingProduct.value = null
-  slideoverOpen.value = true
-}
-
-function openEdit(product: Product) {
-  editingProduct.value = product
-  slideoverOpen.value = true
-}
-
-function onSaved() {
-  slideoverOpen.value = false
-  fetchData()
-}
 </script>
 
 <template>
-  <div>
-    <div class="flex items-center justify-between mb-6">
-      <h1 class="text-2xl font-bold">Products</h1>
-      <UButton icon="i-lucide-plus" label="Add Product" @click="openCreate" />
-    </div>
+  <div class="space-y-6">
+    <CommonPageHeader
+      title="Products"
+      description="Manage smart review stand models, materials, dimensions, and pricing."
+      :breadcrumbs="[{ label: 'Products' }]"
+    >
+      <template #actions>
+        <CommonButton to="/products/new" icon="i-lucide-plus">
+          Add Product
+        </CommonButton>
+      </template>
+    </CommonPageHeader>
 
-    <div class="flex items-center gap-4 mb-4">
-      <UInput
-        v-model="search"
-        placeholder="Search products..."
-        icon="i-lucide-search"
-        class="max-w-sm"
-      />
-      <USelect
-        v-model="statusFilter"
-        :items="statusOptions"
-        placeholder="All Status"
-        class="w-40"
-      />
-    </div>
-
-    <UTable :data="data" :columns="columns" :loading="loading" class="w-full" />
-
-    <div v-if="total > perPage" class="flex justify-end mt-4">
-      <UPagination v-model:page="page" :items-per-page="perPage" :total="total" />
-    </div>
-
-    <USlideover v-model:open="slideoverOpen" :title="editingProduct ? 'Edit Product' : 'Add Product'">
-      <template #body>
-        <ProductsProductForm
-          :product="editingProduct"
-          @saved="onSaved"
-          @cancel="slideoverOpen = false"
+    <CommonDataTable
+      v-model:search="search"
+      v-model:page="page"
+      :data="data"
+      :columns="columns"
+      :total="total"
+      :per-page="perPage"
+      :loading="loading"
+      search-placeholder="Search products by SKU or name..."
+      empty-title="No products found"
+      empty-description="There are no products matching your criteria."
+      empty-action-label="Add Product"
+      @empty-action="navigateTo('/products/new')"
+    >
+      <template #filters>
+        <USelect
+          v-model="statusFilter"
+          :items="statusOptions"
+          placeholder="All Status"
+          class="w-40"
         />
       </template>
-    </USlideover>
+    </CommonDataTable>
   </div>
 </template>

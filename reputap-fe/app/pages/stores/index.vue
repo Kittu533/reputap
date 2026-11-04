@@ -70,7 +70,7 @@ const columns: TableColumn<Store>[] = [
           color: 'neutral',
           variant: 'ghost',
           size: 'xs',
-          onClick: (e: Event) => { e.stopPropagation(); openEdit(row.original) },
+          to: `/stores/${row.original.id}/edit`,
         }),
       ])
     },
@@ -102,62 +102,44 @@ watch(search, () => {
 watch(statusFilter, () => { page.value = 1; fetchData() })
 watch(page, () => fetchData())
 onMounted(() => fetchData())
-
-const slideoverOpen = ref(false)
-const editingStore = ref<Store | null>(null)
-
-function openCreate() {
-  editingStore.value = null
-  slideoverOpen.value = true
-}
-
-function openEdit(store: Store) {
-  editingStore.value = store
-  slideoverOpen.value = true
-}
-
-function onSaved() {
-  slideoverOpen.value = false
-  fetchData()
-}
 </script>
 
 <template>
-  <div>
-    <div class="flex items-center justify-between mb-6">
-      <h1 class="text-2xl font-bold">Stores</h1>
-      <UButton icon="i-lucide-plus" label="Add Store" @click="openCreate" />
-    </div>
+  <div class="space-y-6">
+    <CommonPageHeader
+      title="Stores"
+      description="Manage customer branches, review target links, and physical store locations."
+      :breadcrumbs="[{ label: 'Stores' }]"
+    >
+      <template #actions>
+        <CommonButton to="/stores/new" icon="i-lucide-plus">
+          Add Store
+        </CommonButton>
+      </template>
+    </CommonPageHeader>
 
-    <div class="flex items-center gap-4 mb-4">
-      <UInput
-        v-model="search"
-        placeholder="Search stores..."
-        icon="i-lucide-search"
-        class="max-w-sm"
-      />
-      <USelect
-        v-model="statusFilter"
-        :items="statusOptions"
-        placeholder="All Status"
-        class="w-40"
-      />
-    </div>
-
-    <UTable :data="data" :columns="columns" :loading="loading" class="w-full" />
-
-    <div v-if="total > perPage" class="flex justify-end mt-4">
-      <UPagination v-model:page="page" :items-per-page="perPage" :total="total" />
-    </div>
-
-    <USlideover v-model:open="slideoverOpen" :title="editingStore ? 'Edit Store' : 'Add Store'">
-      <template #body>
-        <StoresStoreForm
-          :store="editingStore"
-          @saved="onSaved"
-          @cancel="slideoverOpen = false"
+    <CommonDataTable
+      v-model:search="search"
+      v-model:page="page"
+      :data="data"
+      :columns="columns"
+      :total="total"
+      :per-page="perPage"
+      :loading="loading"
+      search-placeholder="Search stores by name, code, category..."
+      empty-title="No stores found"
+      empty-description="There are no stores matching your criteria."
+      empty-action-label="Add Store"
+      @empty-action="navigateTo('/stores/new')"
+    >
+      <template #filters>
+        <USelect
+          v-model="statusFilter"
+          :items="statusOptions"
+          placeholder="All Status"
+          class="w-40"
         />
       </template>
-    </USlideover>
+    </CommonDataTable>
   </div>
 </template>

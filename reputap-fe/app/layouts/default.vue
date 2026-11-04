@@ -3,8 +3,30 @@ import type { DropdownMenuItem } from '@nuxt/ui'
 
 const { user, logout } = useAuth()
 const route = useRoute()
+const colorMode = useColorMode()
 
 const sidebarOpen = ref(true)
+
+function toggleColorMode() {
+  const isCurrentlyDark = colorMode.value === 'dark' || (typeof document !== 'undefined' && document.documentElement.classList.contains('dark'))
+  const nextMode = isCurrentlyDark ? 'light' : 'dark'
+
+  colorMode.preference = nextMode
+  colorMode.value = nextMode
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('nuxt-color-mode', nextMode)
+  }
+
+  if (typeof document !== 'undefined') {
+    if (nextMode === 'dark') {
+      document.documentElement.classList.remove('light')
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+      document.documentElement.classList.add('light')
+    }
+  }
+}
 
 interface NavItem {
   label: string
@@ -27,6 +49,11 @@ const navGroups = computed<NavGroup[]>(() => [
         label: 'Dashboard',
         icon: 'i-lucide-layout-dashboard',
         to: '/',
+      },
+      {
+        label: 'Analytics',
+        icon: 'i-lucide-bar-chart-3',
+        to: '/analytics',
       },
     ],
   },
@@ -260,6 +287,15 @@ const userMenuItems = computed<DropdownMenuItem[][]>(() => [
             <UIcon name="i-lucide-file-code-2" class="size-3.5 text-slate-500" />
             <span>Swagger API</span>
           </a>
+
+          <button
+            type="button"
+            class="size-8 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 border border-slate-200 flex items-center justify-center transition-colors"
+            :title="colorMode.value === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+            @click="toggleColorMode"
+          >
+            <UIcon :name="colorMode.value === 'dark' ? 'i-lucide-sun' : 'i-lucide-moon'" class="size-4" />
+          </button>
 
           <div class="h-4 w-px bg-slate-200" />
 

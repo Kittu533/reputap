@@ -124,60 +124,50 @@ watch(statusFilter, () => { page.value = 1; fetchData() })
 watch(paymentFilter, () => { page.value = 1; fetchData() })
 watch(page, () => fetchData())
 onMounted(() => fetchData())
-
-const slideoverOpen = ref(false)
-
-function openCreate() {
-  slideoverOpen.value = true
-}
-
-function onSaved() {
-  slideoverOpen.value = false
-  fetchData()
-}
 </script>
 
 <template>
-  <div>
-    <div class="flex items-center justify-between mb-6">
-      <h1 class="text-2xl font-bold">Orders</h1>
-      <UButton icon="i-lucide-plus" label="Create Order" @click="openCreate" />
-    </div>
+  <div class="space-y-6">
+    <CommonPageHeader
+      title="Orders"
+      description="Track NFC review stand orders, fulfillment lifecycle, and payment status."
+      :breadcrumbs="[{ label: 'Orders' }]"
+    >
+      <template #actions>
+        <CommonButton to="/orders/new" icon="i-lucide-plus">
+          Create Order
+        </CommonButton>
+      </template>
+    </CommonPageHeader>
 
-    <div class="flex items-center gap-4 mb-4">
-      <UInput
-        v-model="search"
-        placeholder="Search order number..."
-        icon="i-lucide-search"
-        class="max-w-sm"
-      />
-      <USelect
-        v-model="statusFilter"
-        :items="orderStatusOptions"
-        placeholder="All Status"
-        class="w-44"
-      />
-      <USelect
-        v-model="paymentFilter"
-        :items="paymentStatusOptions"
-        placeholder="All Payment"
-        class="w-40"
-      />
-    </div>
-
-    <UTable :data="data" :columns="columns" :loading="loading" class="w-full" />
-
-    <div v-if="total > perPage" class="flex justify-end mt-4">
-      <UPagination v-model:page="page" :items-per-page="perPage" :total="total" />
-    </div>
-
-    <USlideover v-model:open="slideoverOpen" title="Create Order" side="right">
-      <template #body>
-        <OrdersOrderForm
-          @saved="onSaved"
-          @cancel="slideoverOpen = false"
+    <CommonDataTable
+      v-model:search="search"
+      v-model:page="page"
+      :data="data"
+      :columns="columns"
+      :total="total"
+      :per-page="perPage"
+      :loading="loading"
+      search-placeholder="Search order number..."
+      empty-title="No orders found"
+      empty-description="There are no orders matching your criteria."
+      empty-action-label="Create Order"
+      @empty-action="navigateTo('/orders/new')"
+    >
+      <template #filters>
+        <USelect
+          v-model="statusFilter"
+          :items="orderStatusOptions"
+          placeholder="All Status"
+          class="w-44"
+        />
+        <USelect
+          v-model="paymentFilter"
+          :items="paymentStatusOptions"
+          placeholder="All Payment"
+          class="w-40"
         />
       </template>
-    </USlideover>
+    </CommonDataTable>
   </div>
 </template>

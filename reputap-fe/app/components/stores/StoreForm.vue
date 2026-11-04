@@ -112,39 +112,43 @@ async function onSubmit(event: FormSubmitEvent<typeof state>) {
 </script>
 
 <template>
-  <UForm :validate="validate" :state="state" class="space-y-4" @submit="onSubmit">
-    <UFormField v-if="!store" label="Customer" name="customer_id" required>
-      <USelect
-        v-model="state.customer_id"
-        :items="customerOptions"
-        placeholder="Select customer"
-        class="w-full"
-      />
-    </UFormField>
+  <UForm :validate="validate" :state="state" class="space-y-5 w-full" @submit="onSubmit">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <UFormField v-if="!store" label="Client / Customer" name="customer_id" required class="w-full">
+        <USelect
+          v-model="state.customer_id"
+          :items="customerOptions"
+          placeholder="Select customer business"
+          class="w-full"
+        />
+      </UFormField>
 
-    <UFormField label="Store Name" name="name" required>
-      <UInput v-model="state.name" placeholder="e.g. Kopi Senja Bandung" class="w-full" />
-    </UFormField>
+      <UFormField label="Store Location Name" name="name" required class="w-full">
+        <UInput v-model="state.name" placeholder="e.g. Kopi Senja Bandung" class="w-full" />
+      </UFormField>
+    </div>
 
-    <UFormField label="Category" name="category">
-      <USelect v-model="state.category" :items="categoryOptions" class="w-full" />
-    </UFormField>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <UFormField label="Store Category" name="category" class="w-full">
+        <USelect v-model="state.category" :items="categoryOptions" class="w-full" />
+      </UFormField>
 
-    <UFormField label="Address" name="address">
-      <UTextarea v-model="state.address" placeholder="Full address" class="w-full" :rows="2" />
-    </UFormField>
+      <UFormField label="Google Business Name" name="google_business_name" class="w-full">
+        <UInput v-model="state.google_business_name" placeholder="As it appears on Google Maps" class="w-full" />
+      </UFormField>
+    </div>
 
-    <UFormField label="Google Business Name" name="google_business_name">
-      <UInput v-model="state.google_business_name" placeholder="As it appears on Google" class="w-full" />
-    </UFormField>
-
-    <UFormField v-if="!store" label="Google Review URL" name="review_url">
+    <UFormField v-if="!store" label="Google Review URL" name="review_url" class="w-full">
       <UInput v-model="state.review_url" placeholder="https://search.google.com/local/writereview?placeid=..." class="w-full" />
     </UFormField>
 
-    <div class="flex justify-end gap-2 pt-4">
+    <UFormField label="Physical Store Address" name="address" class="w-full">
+      <UTextarea v-model="state.address" placeholder="Full street address and landmark" class="w-full" :rows="2" />
+    </UFormField>
+
+    <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
       <UButton color="neutral" variant="outline" label="Cancel" @click="emit('cancel')" />
-      <UButton type="submit" :label="store ? 'Update' : 'Create'" :loading="loading" />
+      <UButton type="submit" :label="store ? 'Save Changes' : 'Create Store'" color="primary" :loading="loading" />
     </div>
   </UForm>
 </template>

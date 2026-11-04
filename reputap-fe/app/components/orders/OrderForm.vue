@@ -118,36 +118,38 @@ async function onSubmit(event: FormSubmitEvent<typeof state>) {
 </script>
 
 <template>
-  <UForm :validate="validate" :state="state" class="space-y-4" @submit="onSubmit">
-    <UFormField label="Customer" name="customer_id" required>
-      <USelect
-        v-model="state.customer_id"
-        :items="customerOptions"
-        placeholder="Select customer"
-        class="w-full"
-      />
-    </UFormField>
+  <UForm :validate="validate" :state="state" class="space-y-5 w-full" @submit="onSubmit">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <UFormField label="Customer" name="customer_id" required class="w-full">
+        <USelect
+          v-model="state.customer_id"
+          :items="customerOptions"
+          placeholder="Select customer"
+          class="w-full"
+        />
+      </UFormField>
 
-    <UFormField label="Store" name="store_id" required>
-      <USelect
-        v-model="state.store_id"
-        :items="storeOptions"
-        :placeholder="state.customer_id ? 'Select store' : 'Select customer first'"
-        :disabled="!state.customer_id"
-        class="w-full"
-      />
-    </UFormField>
+      <UFormField label="Destination Store" name="store_id" required class="w-full">
+        <USelect
+          v-model="state.store_id"
+          :items="storeOptions"
+          :placeholder="state.customer_id ? 'Select store' : 'Select customer first'"
+          :disabled="!state.customer_id"
+          class="w-full"
+        />
+      </UFormField>
+    </div>
 
-    <fieldset>
-      <legend class="text-sm font-medium text-(--ui-text) mb-1.5">Order Items</legend>
-      <div class="space-y-3">
+    <fieldset class="p-4 rounded-xl border border-slate-200/80 bg-slate-50/50">
+      <legend class="text-xs font-bold uppercase tracking-wider text-slate-500 px-1">Order Items</legend>
+      <div class="space-y-3 mt-2">
         <div
           v-for="(item, index) in state.items"
           :key="index"
-          class="flex items-start gap-2 p-3 rounded-lg border border-(--ui-border)"
+          class="flex items-start gap-3 p-3 rounded-lg border border-slate-200 bg-white"
         >
-          <div class="flex-1 grid grid-cols-3 gap-2">
-            <UFormField label="Product" :name="`items.${index}.product_id`" required>
+          <div class="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <UFormField label="Product" :name="`items.${index}.product_id`" required class="w-full">
               <USelect
                 v-model="item.product_id"
                 :items="productOptions"
@@ -157,11 +159,11 @@ async function onSubmit(event: FormSubmitEvent<typeof state>) {
               />
             </UFormField>
 
-            <UFormField label="Qty" :name="`items.${index}.quantity`" required>
+            <UFormField label="Quantity" :name="`items.${index}.quantity`" required class="w-full">
               <UInputNumber v-model="item.quantity" :min="1" class="w-full" />
             </UFormField>
 
-            <UFormField label="Unit Price" :name="`items.${index}.unit_price`" required>
+            <UFormField label="Unit Price (Rp)" :name="`items.${index}.unit_price`" required class="w-full">
               <UInputNumber v-model="item.unit_price" :min="0" class="w-full" />
             </UFormField>
           </div>
@@ -183,32 +185,34 @@ async function onSubmit(event: FormSubmitEvent<typeof state>) {
         color="neutral"
         variant="outline"
         size="sm"
-        class="mt-2"
+        class="mt-3"
         @click="addItem"
       />
     </fieldset>
 
-    <div class="rounded-lg border border-(--ui-border) p-3 space-y-1 text-sm">
-      <div class="flex justify-between">
-        <span class="text-(--ui-text-muted)">Subtotal</span>
-        <span>{{ formatRp(subtotal) }}</span>
+    <div class="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-2 text-sm">
+      <div class="flex justify-between text-slate-600">
+        <span>Subtotal</span>
+        <span class="font-semibold text-slate-800">{{ formatRp(subtotal) }}</span>
       </div>
-      <UFormField label="Discount (Rp)" name="discount">
-        <UInputNumber v-model="state.discount" :min="0" class="w-full" />
-      </UFormField>
-      <div class="flex justify-between font-semibold text-base pt-1 border-t border-(--ui-border)">
-        <span>Total</span>
-        <span>{{ formatRp(total) }}</span>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+        <UFormField label="Discount (Rp)" name="discount" class="w-full">
+          <UInputNumber v-model="state.discount" :min="0" class="w-full" />
+        </UFormField>
+        <div class="flex flex-col items-end justify-center pt-4">
+          <span class="text-xs uppercase font-bold text-slate-400">Total Payable</span>
+          <span class="text-xl font-bold text-blue-600">{{ formatRp(total) }}</span>
+        </div>
       </div>
     </div>
 
-    <UFormField label="Notes" name="notes">
+    <UFormField label="Internal Order Notes" name="notes" class="w-full">
       <UTextarea v-model="state.notes" placeholder="Order notes (optional)" class="w-full" :rows="2" />
     </UFormField>
 
-    <div class="flex justify-end gap-2 pt-4">
+    <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
       <UButton color="neutral" variant="outline" label="Cancel" @click="emit('cancel')" />
-      <UButton type="submit" label="Create Order" :loading="loading" />
+      <UButton type="submit" label="Create Order" color="primary" :loading="loading" />
     </div>
   </UForm>
 </template>

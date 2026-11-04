@@ -113,80 +113,100 @@ function formatJson(value: Record<string, any> | null): string {
 </script>
 
 <template>
-  <div>
-    <div class="flex items-center justify-between mb-6">
-      <h1 class="text-2xl font-bold">Audit Logs</h1>
-    </div>
+  <div class="space-y-6">
+    <CommonPageHeader
+      title="Audit Logs"
+      description="Track system mutation events, staff activity, and historical entity revisions."
+      :breadcrumbs="[{ label: 'Audit Logs' }]"
+    />
 
-    <div class="flex items-center gap-4 mb-4 flex-wrap">
-      <UInput
-        v-model="entityTypeFilter"
-        placeholder="Filter entity type..."
-        icon="i-lucide-search"
-        class="w-48"
-      />
-      <UInput
-        v-model="actionFilter"
-        placeholder="Filter action..."
-        icon="i-lucide-search"
-        class="w-48"
-      />
-      <UInput
-        v-model="dateFrom"
-        type="date"
-        class="w-44"
-      />
-      <UInput
-        v-model="dateTo"
-        type="date"
-        class="w-44"
-      />
-    </div>
-
-    <UTable :data="data" :columns="columns" :loading="loading" class="w-full" />
-
-    <div v-if="total > perPage" class="flex justify-end mt-4">
-      <UPagination v-model:page="page" :items-per-page="perPage" :total="total" />
-    </div>
-
-    <!-- Changes Slideover -->
-    <USlideover v-model:open="changesOpen" title="Audit Log Changes" side="right">
-      <template #body>
-        <div v-if="selectedLog" class="flex flex-col gap-4">
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <p class="text-xs text-gray-500">Log ID</p>
-              <p class="font-medium">{{ selectedLog.id }}</p>
-            </div>
-            <div>
-              <p class="text-xs text-gray-500">User ID</p>
-              <p class="font-medium">#{{ selectedLog.user_id }}</p>
-            </div>
-            <div>
-              <p class="text-xs text-gray-500">Action</p>
-              <p class="font-medium">{{ selectedLog.action }}</p>
-            </div>
-            <div>
-              <p class="text-xs text-gray-500">Entity</p>
-              <p class="font-medium">{{ selectedLog.entity_type }} {{ selectedLog.entity_id != null ? `#${selectedLog.entity_id}` : '' }}</p>
-            </div>
-            <div class="col-span-2">
-              <p class="text-xs text-gray-500">Created At</p>
-              <p class="font-medium">{{ formatDate(selectedLog.created_at) }}</p>
-            </div>
-          </div>
-
-          <div>
-            <p class="text-xs text-gray-500 mb-1">Old Values</p>
-            <pre class="bg-gray-100 dark:bg-gray-800 rounded p-3 text-xs overflow-auto max-h-64">{{ formatJson(selectedLog.old_values) }}</pre>
-          </div>
-
-          <div>
-            <p class="text-xs text-gray-500 mb-1">New Values</p>
-            <pre class="bg-gray-100 dark:bg-gray-800 rounded p-3 text-xs overflow-auto max-h-64">{{ formatJson(selectedLog.new_values) }}</pre>
-          </div>
+    <CommonDataTable
+      v-model:page="page"
+      :data="data"
+      :columns="columns"
+      :total="total"
+      :per-page="perPage"
+      :loading="loading"
+      :show-search="false"
+      empty-title="No audit logs found"
+      empty-description="No event records match your current filter parameters."
+    >
+      <template #filters>
+        <div class="flex items-center gap-2 flex-wrap">
+          <input
+            v-model="entityTypeFilter"
+            type="text"
+            placeholder="Entity type..."
+            class="px-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 w-36"
+          >
+          <input
+            v-model="actionFilter"
+            type="text"
+            placeholder="Action..."
+            class="px-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 w-32"
+          >
+          <input
+            v-model="dateFrom"
+            type="date"
+            class="px-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 w-36"
+          >
+          <input
+            v-model="dateTo"
+            type="date"
+            class="px-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 w-36"
+          >
         </div>
       </template>
-    </USlideover>
+    </CommonDataTable>
+
+    <!-- Changes Modal -->
+    <CommonModal
+      v-model:open="changesOpen"
+      title="Audit Log Changes"
+      :description="selectedLog ? `Event #${selectedLog.id} — ${selectedLog.action} on ${selectedLog.entity_type}` : ''"
+    >
+      <div v-if="selectedLog" class="space-y-4">
+        <div class="grid grid-cols-2 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200/60">
+          <div>
+            <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Log ID</p>
+            <p class="text-sm font-semibold text-slate-900">{{ selectedLog.id }}</p>
+          </div>
+          <div>
+            <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">User ID</p>
+            <p class="text-sm font-semibold text-slate-900">#{{ selectedLog.user_id }}</p>
+          </div>
+          <div>
+            <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Action</p>
+            <p class="text-sm font-semibold text-slate-900">{{ selectedLog.action }}</p>
+          </div>
+          <div>
+            <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Entity</p>
+            <p class="text-sm font-semibold text-slate-900">{{ selectedLog.entity_type }} {{ selectedLog.entity_id != null ? `#${selectedLog.entity_id}` : '' }}</p>
+          </div>
+          <div class="col-span-2">
+            <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Created At</p>
+            <p class="text-sm font-semibold text-slate-900">{{ formatDate(selectedLog.created_at) }}</p>
+          </div>
+        </div>
+
+        <div>
+          <p class="text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">Old Values</p>
+          <pre class="bg-slate-900 text-emerald-400 rounded-xl p-3 text-xs overflow-auto max-h-52 font-mono leading-relaxed">{{ formatJson(selectedLog.old_values) }}</pre>
+        </div>
+
+        <div>
+          <p class="text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">New Values</p>
+          <pre class="bg-slate-900 text-blue-400 rounded-xl p-3 text-xs overflow-auto max-h-52 font-mono leading-relaxed">{{ formatJson(selectedLog.new_values) }}</pre>
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="flex justify-end w-full">
+          <CommonButton variant="outline" @click="changesOpen = false">
+            Close
+          </CommonButton>
+        </div>
+      </template>
+    </CommonModal>
   </div>
 </template>

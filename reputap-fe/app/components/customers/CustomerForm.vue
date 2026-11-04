@@ -81,46 +81,48 @@ async function onSubmit(event: FormSubmitEvent<typeof state>) {
 </script>
 
 <template>
-  <UForm :validate="validate" :state="state" class="space-y-4" @submit="onSubmit">
-    <UFormField label="Name" name="name" required>
-      <UInput v-model="state.name" placeholder="Customer name" class="w-full" />
-    </UFormField>
+  <UForm :validate="validate" :state="state" class="space-y-5 w-full" @submit="onSubmit">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <UFormField label="Contact Name" name="name" required class="w-full">
+        <UInput v-model="state.name" placeholder="Customer name" class="w-full" />
+      </UFormField>
 
-    <UFormField label="Business Name" name="business_name">
-      <UInput v-model="state.business_name" placeholder="Business/company name" class="w-full" />
-    </UFormField>
+      <UFormField label="Business Name" name="business_name" class="w-full">
+        <UInput v-model="state.business_name" placeholder="Business/company name" class="w-full" />
+      </UFormField>
+    </div>
 
-    <div class="grid grid-cols-2 gap-4">
-      <UFormField label="Email" name="email">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <UFormField label="Email Address" name="email" class="w-full">
         <UInput v-model="state.email" type="email" placeholder="email@example.com" class="w-full" />
       </UFormField>
 
-      <UFormField label="Phone" name="phone">
+      <UFormField label="Phone Number" name="phone" class="w-full">
         <UInput v-model="state.phone" placeholder="08xxxxxxxxxx" class="w-full" />
       </UFormField>
     </div>
 
-    <UFormField label="Address" name="address">
-      <UTextarea v-model="state.address" placeholder="Full address" class="w-full" :rows="2" />
+    <UFormField label="Full Address" name="address" class="w-full">
+      <UTextarea v-model="state.address" placeholder="Store or billing street address" class="w-full" :rows="2" />
     </UFormField>
 
-    <div class="grid grid-cols-2 gap-4">
-      <UFormField label="City" name="city">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <UFormField label="City" name="city" class="w-full">
         <UInput v-model="state.city" placeholder="City" class="w-full" />
       </UFormField>
 
-      <UFormField label="Province" name="province">
+      <UFormField label="Province" name="province" class="w-full">
         <UInput v-model="state.province" placeholder="Province" class="w-full" />
       </UFormField>
     </div>
 
-    <UFormField label="Notes" name="notes">
+    <UFormField label="Notes" name="notes" class="w-full">
       <UTextarea v-model="state.notes" placeholder="Internal notes" class="w-full" :rows="2" />
     </UFormField>
 
-    <div class="flex justify-end gap-2 pt-4">
+    <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
       <UButton color="neutral" variant="outline" label="Cancel" @click="emit('cancel')" />
-      <UButton type="submit" :label="customer ? 'Update' : 'Create'" :loading="loading" />
+      <UButton type="submit" :label="customer ? 'Save Changes' : 'Create Customer'" color="primary" :loading="loading" />
     </div>
   </UForm>
 </template>

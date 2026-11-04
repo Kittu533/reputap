@@ -218,3 +218,88 @@ export interface AuditLog {
   new_values: Record<string, any> | null
   created_at: string
 }
+
+export interface DashboardSummary {
+  orders: {
+    total: number
+    total_revenue: number
+    by_status: Record<string, number>
+  }
+  customers: {
+    total: number
+  }
+  stores: {
+    total: number
+    active: number
+    review_url_verified: number
+    by_status: Record<string, number>
+  }
+  qr_codes: {
+    total: number
+    active: number
+    by_status: Record<string, number>
+  }
+  scans: {
+    total: number
+    qr_count: number
+    nfc_count: number
+    unknown_count: number
+    by_device: Record<string, number>
+  }
+  redirect_success_rate: number
+}
+
+export interface RecentActivity {
+  id: number
+  user_id: number
+  user_name: string
+  action: string
+  entity_type: string
+  entity_id: number | null
+  created_at: string
+}
+
+export interface StoreScanRank {
+  store_id: number
+  store_name: string
+  customer_name: string
+  total_scans: number
+  qr_scans: number
+  nfc_scans: number
+}
+
+export interface AnalyticsOverview {
+  total_scans: number
+  qr_scans: number
+  nfc_scans: number
+  unknown_scans: number
+  device_breakdown: Record<string, number>
+  today_scans: number
+  yesterday_scans: number
+  this_week_scans: number
+  this_month_scans: number
+  top_stores: StoreScanRank[]
+}
+
+export interface TimeSeriesPoint {
+  date: string
+  total: number
+  qr_count: number
+  nfc_count: number
+}
+
+export interface StoreAnalytics {
+  store_id: number
+  store_name: string
+  customer_name: string
+  review_url: string
+  status: string
+  review_url_verified: boolean
+  active_qr_codes: number
+  total_scans: number
+  qr_scans: number
+  nfc_scans: number
+  device_breakdown: Record<string, number>
+  daily_scans: TimeSeriesPoint[]
+}
+

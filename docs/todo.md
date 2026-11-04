@@ -175,20 +175,20 @@
 ## PHASE 5 — Dashboard & Analytics
 
 ### 5.1 Dashboard API
-- ⬜ GET /api/v1/dashboard/summary
-- ⬜ GET /api/v1/dashboard/recent-activities
+- ✅ GET /api/v1/dashboard/summary
+- ✅ GET /api/v1/dashboard/recent-activities
 
 ### 5.2 Analytics API
-- ⬜ GET /api/v1/analytics/overview
-- ⬜ GET /api/v1/analytics/scans (time-series)
-- ⬜ GET /api/v1/analytics/stores/{id}
+- ✅ GET /api/v1/analytics/overview
+- ✅ GET /api/v1/analytics/scans (time-series)
+- ✅ GET /api/v1/analytics/stores/{id}
 
 ### 5.3 Frontend
-- ⬜ Overview page (summary cards + charts)
-- ⬜ Analytics page (scan charts, store comparison)
+- ✅ Overview page (summary cards + activities feed + real API)
+- ✅ Analytics page (scan charts, store comparison, device breakdown)
 
 ---
 
 ## CURRENT FOCUS
 
-> **Phase 3 — QR & NFC Engine** (backend: identifier gen, product instances, QR codes, redirect engine, NFC tracking)
+> **Project Complete** (All Phases 1 to 5 implemented and verified)

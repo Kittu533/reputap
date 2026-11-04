@@ -93,65 +93,69 @@ async function onSubmit(event: FormSubmitEvent<typeof state>) {
 </script>
 
 <template>
-  <UForm :validate="validate" :state="state" class="space-y-4" @submit="onSubmit">
-    <UFormField label="SKU" name="sku" :required="!product">
-      <UInput
-        v-model="state.sku"
-        placeholder="e.g. NFC-CARD-001"
-        class="w-full"
-        :readonly="!!product"
-        :disabled="!!product"
-      />
+  <UForm :validate="validate" :state="state" class="space-y-5 w-full" @submit="onSubmit">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <UFormField label="SKU / Item Code" name="sku" :required="!product" class="w-full">
+        <UInput
+          v-model="state.sku"
+          placeholder="e.g. STAND-ACRYLIC-01"
+          class="w-full"
+          :readonly="!!product"
+          :disabled="!!product"
+        />
+      </UFormField>
+
+      <UFormField label="Product Name" name="name" required class="w-full">
+        <UInput v-model="state.name" placeholder="e.g. Premium Acrylic NFC Stand" class="w-full" />
+      </UFormField>
+    </div>
+
+    <UFormField label="Description" name="description" class="w-full">
+      <UTextarea v-model="state.description" placeholder="Product description, stand features and materials" class="w-full" :rows="3" />
     </UFormField>
 
-    <UFormField label="Name" name="name" required>
-      <UInput v-model="state.name" placeholder="Product name" class="w-full" />
-    </UFormField>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <UFormField label="Material" name="material" class="w-full">
+        <UInput v-model="state.material" placeholder="e.g. Acrylic, Wood, Metal" class="w-full" />
+      </UFormField>
 
-    <UFormField label="Description" name="description">
-      <UTextarea v-model="state.description" placeholder="Product description" class="w-full" :rows="3" />
-    </UFormField>
+      <UFormField label="Finishing" name="finishing" class="w-full">
+        <UInput v-model="state.finishing" placeholder="e.g. Glossy, Matte, Laser Engraved" class="w-full" />
+      </UFormField>
 
-    <UFormField label="Material" name="material">
-      <UInput v-model="state.material" placeholder="e.g. PVC, Wood, Metal" class="w-full" />
-    </UFormField>
+      <UFormField label="NFC Chip Type" name="nfc_chip_type" class="w-full">
+        <UInput v-model="state.nfc_chip_type" placeholder="NTAG213 / NTAG215" class="w-full" />
+      </UFormField>
+    </div>
 
-    <fieldset>
-      <legend class="text-sm font-medium text-(--ui-text) mb-1.5">Dimensions (mm)</legend>
-      <div class="grid grid-cols-3 gap-3">
-        <UFormField label="Width" name="width_mm">
-          <UInputNumber v-model="state.width_mm" placeholder="W" :min="0" class="w-full" />
+    <fieldset class="p-4 rounded-xl border border-slate-200/80 bg-slate-50/50">
+      <legend class="text-xs font-bold uppercase tracking-wider text-slate-500 px-1">Dimensions (mm)</legend>
+      <div class="grid grid-cols-3 gap-4 mt-2">
+        <UFormField label="Width (mm)" name="width_mm" class="w-full">
+          <UInputNumber v-model="state.width_mm" placeholder="e.g. 100" :min="0" class="w-full" />
         </UFormField>
-        <UFormField label="Height" name="height_mm">
-          <UInputNumber v-model="state.height_mm" placeholder="H" :min="0" class="w-full" />
+        <UFormField label="Height (mm)" name="height_mm" class="w-full">
+          <UInputNumber v-model="state.height_mm" placeholder="e.g. 150" :min="0" class="w-full" />
         </UFormField>
-        <UFormField label="Thickness" name="thickness_mm">
-          <UInputNumber v-model="state.thickness_mm" placeholder="T" :min="0" class="w-full" />
+        <UFormField label="Thickness (mm)" name="thickness_mm" class="w-full">
+          <UInputNumber v-model="state.thickness_mm" placeholder="e.g. 5" :min="0" class="w-full" />
         </UFormField>
       </div>
     </fieldset>
 
-    <UFormField label="NFC Chip Type" name="nfc_chip_type">
-      <UInput v-model="state.nfc_chip_type" placeholder="NTAG213" class="w-full" />
-    </UFormField>
-
-    <UFormField label="Finishing" name="finishing">
-      <UInput v-model="state.finishing" placeholder="e.g. Glossy, Matte, Embossed" class="w-full" />
-    </UFormField>
-
-    <div class="grid grid-cols-2 gap-4">
-      <UFormField label="Production Cost (Rp)" name="production_cost">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <UFormField label="Production Cost (IDR)" name="production_cost" class="w-full">
         <UInputNumber v-model="state.production_cost" placeholder="0" :min="0" class="w-full" />
       </UFormField>
 
-      <UFormField label="Selling Price (Rp)" name="selling_price">
+      <UFormField label="Selling Price (IDR)" name="selling_price" class="w-full">
         <UInputNumber v-model="state.selling_price" placeholder="0" :min="0" class="w-full" />
       </UFormField>
     </div>
 
-    <div class="flex justify-end gap-2 pt-4">
+    <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
       <UButton color="neutral" variant="outline" label="Cancel" @click="emit('cancel')" />
-      <UButton type="submit" :label="product ? 'Update' : 'Create'" :loading="loading" />
+      <UButton type="submit" :label="product ? 'Save Changes' : 'Create Product'" color="primary" :loading="loading" />
     </div>
   </UForm>
 </template>

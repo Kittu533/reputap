@@ -222,111 +222,163 @@ async function submitUpdateStatus() {
 </script>
 
 <template>
-  <div>
-    <div class="flex items-center justify-between mb-6">
-      <h1 class="text-2xl font-bold">Shipping</h1>
-      <UButton icon="i-lucide-plus" label="Create Shipment" @click="openCreate" />
-    </div>
-
-    <div class="flex items-center gap-4 mb-4">
-      <USelect
-        v-model="statusFilter"
-        :items="statusOptions"
-        placeholder="All Status"
-        class="w-44"
-      />
-    </div>
-
-    <UTable :data="data" :columns="columns" :loading="loading" class="w-full" />
-
-    <div v-if="total > perPage" class="flex justify-end mt-4">
-      <UPagination v-model:page="page" :items-per-page="perPage" :total="total" />
-    </div>
-
-    <!-- Create Slideover -->
-    <USlideover v-model:open="createOpen" title="Create Shipment" side="right">
-      <template #body>
-        <div class="flex flex-col gap-4">
-          <UFormField label="Order ID" required>
-            <UInput v-model.number="form.order_id" type="number" placeholder="Enter order ID" />
-          </UFormField>
-
-          <UFormField label="Recipient Name" required>
-            <UInput v-model="form.recipient_name" placeholder="Enter recipient name" />
-          </UFormField>
-
-          <UFormField label="Recipient Address" required>
-            <UTextarea v-model="form.recipient_address" placeholder="Enter recipient address" :rows="3" />
-          </UFormField>
-
-          <UFormField label="Recipient Phone">
-            <UInput v-model="form.recipient_phone" placeholder="Enter phone number" />
-          </UFormField>
-
-          <UFormField label="Courier">
-            <UInput v-model="form.courier" placeholder="e.g. JNE, J&T, SiCepat" />
-          </UFormField>
-
-          <UFormField label="Tracking Number">
-            <UInput v-model="form.tracking_number" placeholder="Enter tracking number" />
-          </UFormField>
-
-          <div class="flex justify-end gap-2 pt-4">
-            <UButton label="Cancel" color="neutral" variant="ghost" @click="createOpen = false" />
-            <UButton label="Create" :loading="submitting" @click="submitCreate" />
-          </div>
-        </div>
+  <div class="space-y-6">
+    <CommonPageHeader
+      title="Shipping"
+      description="Manage parcel dispatches, courier tracking, and order fulfillment delivery."
+      :breadcrumbs="[{ label: 'Shipping' }]"
+    >
+      <template #actions>
+        <CommonButton icon="i-lucide-plus" @click="openCreate">
+          Create Shipment
+        </CommonButton>
       </template>
-    </USlideover>
+    </CommonPageHeader>
 
-    <!-- Update Status Slideover -->
-    <USlideover v-model:open="updateStatusOpen" title="Update Shipment Status" side="right">
-      <template #body>
-        <div v-if="updatingShipment" class="flex flex-col gap-4">
-          <div class="grid grid-cols-2 gap-3 mb-2">
-            <div>
-              <p class="text-xs text-gray-500">Shipment ID</p>
-              <p class="font-medium">{{ updatingShipment.id }}</p>
-            </div>
-            <div>
-              <p class="text-xs text-gray-500">Order ID</p>
-              <p class="font-medium">#{{ updatingShipment.order_id }}</p>
-            </div>
-            <div>
-              <p class="text-xs text-gray-500">Recipient</p>
-              <p class="font-medium">{{ updatingShipment.recipient_name }}</p>
-            </div>
-            <div>
-              <p class="text-xs text-gray-500">Current Status</p>
-              <UBadge :color="statusColor[updatingShipment.shipping_status] || 'neutral'" variant="subtle" class="capitalize">
-                {{ formatStatus(updatingShipment.shipping_status) }}
-              </UBadge>
-            </div>
-          </div>
+    <CommonDataTable
+      v-model:page="page"
+      :data="data"
+      :columns="columns"
+      :total="total"
+      :per-page="perPage"
+      :loading="loading"
+      :show-search="false"
+      empty-title="No shipments found"
+      empty-description="There are currently no shipment dispatches matching your criteria."
+      empty-action-label="Create Shipment"
+      @empty-action="openCreate"
+    >
+      <template #filters>
+        <USelect
+          v-model="statusFilter"
+          :items="statusOptions"
+          placeholder="All Status"
+          class="w-44"
+        />
+      </template>
+    </CommonDataTable>
 
-          <UFormField label="New Status" required>
-            <USelect
-              v-model="statusForm.status"
-              :items="statusOptions"
-              placeholder="Select status"
-              class="w-full"
+    <!-- Create Shipment Modal -->
+    <CommonModal
+      v-model:open="createOpen"
+      title="Create Shipment"
+      description="Register dispatch details and assign tracking to an order."
+    >
+      <div class="space-y-4">
+        <CommonFormField label="Order ID" required>
+          <CommonInput
+            v-model.number="form.order_id"
+            type="number"
+            placeholder="Enter order ID"
+          />
+        </CommonFormField>
+
+        <CommonFormField label="Recipient Name" required>
+          <CommonInput
+            v-model="form.recipient_name"
+            placeholder="Enter recipient name"
+          />
+        </CommonFormField>
+
+        <CommonFormField label="Recipient Address" required>
+          <textarea
+            v-model="form.recipient_address"
+            rows="3"
+            placeholder="Enter complete shipping address"
+            class="w-full p-3 text-sm bg-white border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+          />
+        </CommonFormField>
+
+        <CommonFormField label="Recipient Phone">
+          <CommonInput
+            v-model="form.recipient_phone"
+            placeholder="Enter phone number"
+          />
+        </CommonFormField>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <CommonFormField label="Courier">
+            <CommonInput
+              v-model="form.courier"
+              placeholder="e.g. JNE, J&T, SiCepat"
             />
-          </UFormField>
+          </CommonFormField>
 
-          <UFormField label="Tracking Number">
-            <UInput v-model="statusForm.tracking_number" placeholder="Enter tracking number" />
-          </UFormField>
+          <CommonFormField label="Tracking Number">
+            <CommonInput
+              v-model="form.tracking_number"
+              placeholder="Enter tracking number"
+            />
+          </CommonFormField>
+        </div>
+      </div>
 
-          <UFormField label="Courier">
-            <UInput v-model="statusForm.courier" placeholder="Enter courier name" />
-          </UFormField>
-
-          <div class="flex justify-end gap-2 pt-4">
-            <UButton label="Cancel" color="neutral" variant="ghost" @click="updateStatusOpen = false" />
-            <UButton label="Update Status" :loading="statusSubmitting" @click="submitUpdateStatus" />
-          </div>
+      <template #footer>
+        <div class="flex items-center justify-end gap-2 w-full">
+          <CommonButton variant="outline" @click="createOpen = false">
+            Cancel
+          </CommonButton>
+          <CommonButton :loading="submitting" @click="submitCreate">
+            Create Shipment
+          </CommonButton>
         </div>
       </template>
-    </USlideover>
+    </CommonModal>
+
+    <!-- Update Status Modal -->
+    <CommonModal
+      v-model:open="updateStatusOpen"
+      title="Update Shipment Status"
+      :description="updatingShipment ? `Shipment #${updatingShipment.id} — Order #${updatingShipment.order_id}` : ''"
+    >
+      <div v-if="updatingShipment" class="space-y-4">
+        <div class="grid grid-cols-2 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200/60">
+          <div>
+            <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Recipient</p>
+            <p class="text-sm font-semibold text-slate-900">{{ updatingShipment.recipient_name }}</p>
+          </div>
+          <div>
+            <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Current Status</p>
+            <UBadge :color="statusColor[updatingShipment.shipping_status] || 'neutral'" variant="subtle" class="capitalize mt-0.5">
+              {{ formatStatus(updatingShipment.shipping_status) }}
+            </UBadge>
+          </div>
+        </div>
+
+        <CommonFormField label="New Status" required>
+          <USelect
+            v-model="statusForm.status"
+            :items="statusOptions"
+            placeholder="Select status"
+            class="w-full"
+          />
+        </CommonFormField>
+
+        <CommonFormField label="Tracking Number">
+          <CommonInput
+            v-model="statusForm.tracking_number"
+            placeholder="Enter tracking number"
+          />
+        </CommonFormField>
+
+        <CommonFormField label="Courier">
+          <CommonInput
+            v-model="statusForm.courier"
+            placeholder="Enter courier name"
+          />
+        </CommonFormField>
+      </div>
+
+      <template #footer>
+        <div class="flex items-center justify-end gap-2 w-full">
+          <CommonButton variant="outline" @click="updateStatusOpen = false">
+            Cancel
+          </CommonButton>
+          <CommonButton :loading="statusSubmitting" @click="submitUpdateStatus">
+            Update Status
+          </CommonButton>
+        </div>
+      </template>
+    </CommonModal>
   </div>
 </template>
