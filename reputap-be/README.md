@@ -49,6 +49,7 @@ From root directory:
 ```bash
 make db
 make migrate
+make seed     # Populate realistic demo/mock data
 ```
 
 Verify tables and seeded users:

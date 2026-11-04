@@ -4,8 +4,8 @@ import "time"
 
 type ProductInstance struct {
 	ID               uint64     `json:"id" db:"id"`
-	OrderItemID      uint64     `json:"order_item_id" db:"order_item_id"`
-	StoreID          uint64     `json:"store_id" db:"store_id"`
+	OrderItemID      *uint64    `json:"order_item_id" db:"order_item_id"`
+	StoreID          *uint64    `json:"store_id" db:"store_id"`
 	SerialNumber     string     `json:"serial_number" db:"serial_number"`
 	NFCStatus        string     `json:"nfc_status" db:"nfc_status"`
 	NFCConfiguredAt  *time.Time `json:"nfc_configured_at" db:"nfc_configured_at"`

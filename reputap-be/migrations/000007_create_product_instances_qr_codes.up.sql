@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS product_instances (
     id BIGSERIAL PRIMARY KEY,
-    order_item_id BIGINT NOT NULL,
-    store_id BIGINT NOT NULL,
+    order_item_id BIGINT NULL,
+    store_id BIGINT NULL,
     serial_number VARCHAR(20) NOT NULL UNIQUE,
     nfc_status VARCHAR(50) DEFAULT 'not_configured',
     nfc_configured_at TIMESTAMPTZ NULL,
@@ -21,7 +21,7 @@ CREATE INDEX IF NOT EXISTS idx_product_instances_store ON product_instances (sto
 CREATE TABLE IF NOT EXISTS qr_codes (
     id BIGSERIAL PRIMARY KEY,
     product_instance_id BIGINT NOT NULL UNIQUE,
-    store_id BIGINT NOT NULL,
+    store_id BIGINT NULL,
     code VARCHAR(20) NOT NULL UNIQUE,
     status VARCHAR(50) DEFAULT 'active',
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,

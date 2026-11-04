@@ -101,6 +101,11 @@ const navGroups = computed<NavGroup[]>(() => [
         to: '/production',
       },
       {
+        label: 'NFC Tools',
+        icon: 'i-lucide-radio',
+        to: '/nfc-tools',
+      },
+      {
         label: 'Quality Control',
         icon: 'i-lucide-shield-check',
         to: '/quality-control',

@@ -29,6 +29,11 @@ func (s *Service) Resolve(ctx context.Context, code string, userAgent string, re
 		StoreName: qr.StoreName,
 	}
 
+	if qr.QRStatus == "unassigned" || qr.StoreID == 0 {
+		result.Action = "unassigned"
+		return result, nil
+	}
+
 	if qr.QRStatus != "active" {
 		result.Action = "inactive"
 		return result, nil

@@ -67,9 +67,11 @@ func (s *Service) GenerateForOrder(ctx context.Context, orderID uint64) ([]Insta
 				return nil, fmt.Errorf("generating serial number: %w", err)
 			}
 
+			itemID := p.item.ID
+			storeID := p.item.StoreID
 			instance := &ProductInstance{
-				OrderItemID:      p.item.ID,
-				StoreID:          p.item.StoreID,
+				OrderItemID:      &itemID,
+				StoreID:          &storeID,
 				SerialNumber:     serialNumber,
 				NFCStatus:        "not_configured",
 				ProductionStatus: "pending",

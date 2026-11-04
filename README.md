@@ -19,6 +19,7 @@ Smart Review & NFC/QR Tap Management System.
 ```bash
 make db       # Starts reputap-postgres on port 5433
 make migrate  # Runs all migrations into PostgreSQL
+make seed     # Seeds demo data (customers, stores, products, orders, scan analytics)
 ```
 
 ### 3. Run Full-Stack Development

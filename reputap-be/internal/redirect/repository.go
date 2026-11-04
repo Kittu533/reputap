@@ -19,10 +19,10 @@ func NewRepository(db *database.DB) *Repository {
 func (r *Repository) FindByCode(ctx context.Context, code string) (*QRWithStore, error) {
 	query := `
 		SELECT qr.id as qr_id, qr.code as qr_code, qr.status as qr_status,
-		       s.id as store_id, s.name as store_name, s.status as store_status,
+		       COALESCE(s.id, 0) as store_id, COALESCE(s.name, '') as store_name, COALESCE(s.status, '') as store_status,
 		       COALESCE(s.review_url, '') as review_url
 		FROM qr_codes qr
-		JOIN stores s ON qr.store_id = s.id
+		LEFT JOIN stores s ON qr.store_id = s.id
 		WHERE qr.code = ?`
 
 	var result QRWithStore

@@ -2,7 +2,8 @@
 INSERT INTO roles (name, description) VALUES
 ('super_admin', 'Full system access'),
 ('admin', 'Operational management access'),
-('operator', 'Limited operational access');
+('operator', 'Limited operational access')
+ON CONFLICT (name) DO NOTHING;
 
 -- Seed permissions
 INSERT INTO permissions (name, description, module) VALUES
@@ -49,15 +50,18 @@ INSERT INTO permissions (name, description, module) VALUES
 -- Audit
 ('audit.view', 'View audit logs', 'audit'),
 -- Settings
-('settings.manage', 'Manage system settings', 'settings');
+('settings.manage', 'Manage system settings', 'settings')
+ON CONFLICT (name) DO NOTHING;
 
 -- Assign all permissions to super_admin
 INSERT INTO role_permissions (role_id, permission_id)
-SELECT 1, id FROM permissions;
+SELECT 1, id FROM permissions
+ON CONFLICT DO NOTHING;
 
 -- Assign most permissions to admin (exclude auth.manage_users, auth.manage_roles, settings.manage, audit.view)
 INSERT INTO role_permissions (role_id, permission_id)
-SELECT 2, id FROM permissions WHERE name NOT IN ('auth.manage_users', 'auth.manage_roles', 'settings.manage');
+SELECT 2, id FROM permissions WHERE name NOT IN ('auth.manage_users', 'auth.manage_roles', 'settings.manage')
+ON CONFLICT DO NOTHING;
 
 -- Assign limited permissions to operator
 INSERT INTO role_permissions (role_id, permission_id)
@@ -70,9 +74,11 @@ SELECT 3, id FROM permissions WHERE name IN (
     'stores.view',
     'customers.view',
     'products.view'
-);
+)
+ON CONFLICT DO NOTHING;
 
 -- Seed default super admin (password: admin123)
 -- bcrypt hash for 'admin123'
 INSERT INTO users (name, email, password_hash, role_id, status) VALUES
-('Super Admin', 'admin@reputap.id', '$2a$10$BWefn4Lz1nFfOA92nVSqFuOhUPCI/RXFxTEBz0l6G6hOxHPEBli7e', 1, 'active');
+('Super Admin', 'admin@reputap.id', '$2a$10$BWefn4Lz1nFfOA92nVSqFuOhUPCI/RXFxTEBz0l6G6hOxHPEBli7e', 1, 'active')
+ON CONFLICT (email) DO NOTHING;

@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/kittu533/reputap-be/pkg/googleplaces"
 	urlValidator "github.com/kittu533/reputap-be/pkg/validator"
 )
 
@@ -37,6 +38,8 @@ func NewService(repo *Repository) *Service {
 
 func (s *Service) Create(ctx context.Context, req CreateRequest) (*Store, error) {
 	if req.ReviewURL != nil && *req.ReviewURL != "" {
+		normalized := googleplaces.ToDirectReviewURL(ctx, *req.ReviewURL)
+		req.ReviewURL = &normalized
 		if !urlValidator.IsValidGoogleReviewURL(*req.ReviewURL) {
 			return nil, ErrInvalidReviewURL
 		}
@@ -167,6 +170,7 @@ func (s *Service) UpdateReviewURL(ctx context.Context, id uint64, req UpdateRevi
 		return fmt.Errorf("fetching store: %w", err)
 	}
 
+	req.ReviewURL = googleplaces.ToDirectReviewURL(ctx, req.ReviewURL)
 	if !urlValidator.IsValidGoogleReviewURL(req.ReviewURL) {
 		return ErrInvalidReviewURL
 	}

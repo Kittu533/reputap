@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/cors"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 
+	"github.com/kittu533/reputap-be/internal/activation"
 	"github.com/kittu533/reputap-be/internal/analytics"
 	"github.com/kittu533/reputap-be/internal/audit"
 	"github.com/kittu533/reputap-be/internal/auth"
@@ -110,7 +111,12 @@ func main() {
 	// Redirect Engine
 	redirectRepo := redirect.NewRepository(db)
 	redirectService := redirect.NewService(redirectRepo)
-	redirectHandler := redirect.NewHandler(redirectService)
+	redirectHandler := redirect.NewHandler(redirectService, cfg.FrontendURL)
+
+	// Activation
+	activationRepo := activation.NewRepository(db)
+	activationService := activation.NewService(activationRepo, cfg.RedirectBaseURL)
+	activationHandler := activation.NewHandler(activationService)
 
 	// Design Assets
 	designRepo := design.NewRepository(db)
@@ -180,6 +186,8 @@ func main() {
 		// Public routes
 		r.Post("/auth/login", authHandler.Login)
 		r.Post("/auth/refresh", authHandler.Refresh)
+		r.Get("/activate/check", activationHandler.Check)
+		r.Post("/activate", activationHandler.Activate)
 
 		// Protected routes
 		r.Group(func(r chi.Router) {
