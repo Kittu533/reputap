@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"strings"
+
+	"github.com/kittu533/reputap-be/pkg/googleplaces"
 )
 
 type Service struct {
@@ -64,6 +66,7 @@ func (s *Service) Activate(ctx context.Context, req ActivateRequest) (*ActivateR
 	req.Code = strings.TrimSpace(req.Code)
 	req.BusinessName = strings.TrimSpace(req.BusinessName)
 	req.ReviewURL = strings.TrimSpace(req.ReviewURL)
+	req.ReviewURL = googleplaces.ToDirectReviewURL(ctx, req.ReviewURL)
 
 	_, err := s.repo.Activate(ctx, req)
 	if err != nil {

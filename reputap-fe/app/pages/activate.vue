@@ -302,7 +302,7 @@ onMounted(() => {
               class="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <p class="text-[11px] text-slate-500 mt-1.5 leading-relaxed bg-blue-50/60 text-blue-900/80 p-2.5 rounded-lg border border-blue-100">
-              💡 <strong>Cara dapat link:</strong> Buka <em>Google Maps</em> di HP &rarr; Profil Bisnis Anda &rarr; Pilih <em>"Minta Ulasan"</em> &rarr; Salin Tautan Ulasan.
+              💡 <strong>Bebas ribet:</strong> Cukup salin link Google Maps atau klik tombol <em>Bagikan (Share)</em> toko Anda. Sistem otomatis mengubahnya menjadi link direct pop-up ulasan 5 bintang.
             </p>
           </div>
 
