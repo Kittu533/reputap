@@ -1,0 +1,16 @@
+[Unit]
+Description=Reputap Backend Service
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/var/www/reputap
+ExecStart=/var/www/reputap/server
+Restart=always
+RestartSec=3s
+EnvironmentFile=/var/www/reputap/.env
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

@@ -1,15 +1,16 @@
 export PATH := $(HOME)/.bun/bin:$(PATH)
 
-.PHONY: dev dev-be dev-fe db migrate seed produce
+.PHONY: dev dev-be dev-fe db migrate seed produce build-linux
 
 db:
 	docker compose up -d postgres
 
 migrate:
-	@for f in $$(ls -1 reputap-be/migrations/*.up.sql | sort); do \
-		echo "Migrating: $$f"; \
-		docker exec -i reputap-postgres psql -U reputap -d reputap < "$$f"; \
-	done
+	cd reputap-be && go run cmd/migrate/main.go
+
+build-linux:
+	cd reputap-be && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o ../bin/server ./cmd/server
+	cd reputap-be && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o ../bin/migrate ./cmd/migrate
 
 seed:
 	cd reputap-be && go run cmd/seed/main.go
