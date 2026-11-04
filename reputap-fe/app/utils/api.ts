@@ -150,3 +150,71 @@ export interface QRCodeDetail {
   updated_at: string
   redirect_url: string
 }
+
+export interface DesignAsset {
+  id: number
+  order_id: number
+  store_id: number
+  file_path: string
+  file_name: string
+  file_type: string
+  file_size: number
+  version: number
+  approval_status: 'draft' | 'pending_approval' | 'approved' | 'revision_required'
+  uploaded_by: number
+  created_at: string
+}
+
+export interface ProductionJob {
+  id: number
+  product_instance_id: number
+  assigned_to: number | null
+  status: 'pending' | 'in_progress' | 'completed' | 'failed'
+  checklist_data: Record<string, boolean> | null
+  started_at: string | null
+  completed_at: string | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+  serial_number: string
+  store_id: number
+}
+
+export interface QCRecord {
+  id: number
+  product_instance_id: number
+  inspected_by: number
+  result: 'passed' | 'failed' | 'rework_required'
+  checklist_data: Record<string, boolean>
+  evidence_paths: string[] | null
+  notes: string | null
+  inspected_at: string
+  serial_number: string
+  store_id: number
+}
+
+export interface Shipment {
+  id: number
+  order_id: number
+  recipient_name: string
+  recipient_address: string
+  recipient_phone: string | null
+  courier: string | null
+  tracking_number: string | null
+  shipping_status: 'waiting' | 'packed' | 'shipped' | 'delivered' | 'failed'
+  shipped_at: string | null
+  delivered_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface AuditLog {
+  id: number
+  user_id: number
+  action: string
+  entity_type: string
+  entity_id: number | null
+  old_values: Record<string, any> | null
+  new_values: Record<string, any> | null
+  created_at: string
+}

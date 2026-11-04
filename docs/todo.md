@@ -149,26 +149,26 @@
 ## PHASE 4 — Internal Operations
 
 ### 4.1 Design Asset Management
-- ⬜ Backend: upload, list, version, approval status
-- ⬜ File validation (type + size)
-- ⬜ Frontend: design management page
+- ✅ Backend: upload, list, version, approval status
+- ✅ File validation (type + size)
+- ✅ Frontend: design management page
 
 ### 4.2 Production Management
-- ⬜ Backend: job CRUD, assignment, checklist, notes
-- ⬜ Frontend: production queue page
+- ✅ Backend: job CRUD, assignment, checklist, notes
+- ✅ Frontend: production queue page
 
 ### 4.3 Quality Control
-- ⬜ Backend: QC submission, checklist, evidence, result
-- ⬜ Business rule: failed QC blocks ready_to_ship
-- ⬜ Frontend: QC page
+- ✅ Backend: QC submission, checklist, evidence, result
+- ✅ Business rule: failed QC blocks ready_to_ship
+- ✅ Frontend: QC page
 
 ### 4.4 Shipping Management
-- ⬜ Backend: shipment CRUD, tracking, status
-- ⬜ Frontend: shipping page
+- ✅ Backend: shipment CRUD, tracking, status
+- ✅ Frontend: shipping page
 
 ### 4.5 Audit Log
-- ⬜ Backend: reusable audit service, list endpoint
-- ⬜ Frontend: activity log page
+- ✅ Backend: reusable audit service, list endpoint
+- ✅ Frontend: activity log page
 
 ---
 

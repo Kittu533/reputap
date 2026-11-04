@@ -1,5 +1,24 @@
 basePath: /
 definitions:
+  audit.AuditLog:
+    properties:
+      action:
+        type: string
+      created_at:
+        type: string
+      entity_id:
+        type: integer
+      entity_type:
+        type: string
+      id:
+        type: integer
+      new_values:
+        type: object
+      old_values:
+        type: object
+      user_id:
+        type: integer
+    type: object
   auth.LoginRequest:
     properties:
       email:
@@ -124,6 +143,43 @@ definitions:
         type: string
     required:
     - name
+    type: object
+  design.DesignAsset:
+    properties:
+      approval_status:
+        type: string
+      created_at:
+        type: string
+      file_name:
+        type: string
+      file_path:
+        type: string
+      file_size:
+        type: integer
+      file_type:
+        type: string
+      id:
+        type: integer
+      order_id:
+        type: integer
+      store_id:
+        type: integer
+      uploaded_by:
+        type: integer
+      version:
+        type: integer
+    type: object
+  design.UpdateApprovalRequest:
+    properties:
+      status:
+        enum:
+        - draft
+        - pending_approval
+        - approved
+        - revision_required
+        type: string
+    required:
+    - status
     type: object
   orders.CreateItemRequest:
     properties:
@@ -330,6 +386,62 @@ definitions:
     required:
     - status
     type: object
+  production.CreateRequest:
+    properties:
+      assigned_to:
+        type: integer
+      checklist_data:
+        type: object
+      notes:
+        type: string
+      product_instance_id:
+        type: integer
+    required:
+    - product_instance_id
+    type: object
+  production.JobWithInstance:
+    properties:
+      assigned_to:
+        type: integer
+      checklist_data:
+        type: object
+      completed_at:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      notes:
+        type: string
+      product_instance_id:
+        type: integer
+      serial_number:
+        type: string
+      started_at:
+        type: string
+      status:
+        type: string
+      store_id:
+        type: integer
+      updated_at:
+        type: string
+    type: object
+  production.UpdateStatusRequest:
+    properties:
+      checklist_data:
+        type: object
+      notes:
+        type: string
+      status:
+        enum:
+        - pending
+        - in_progress
+        - completed
+        - failed
+        type: string
+    required:
+    - status
+    type: object
   products.CreateRequest:
     properties:
       description:
@@ -450,6 +562,69 @@ definitions:
     required:
     - name
     type: object
+  qc.CreateRequest:
+    properties:
+      checklist_data:
+        type: object
+      evidence_paths:
+        type: object
+      notes:
+        type: string
+      product_instance_id:
+        type: integer
+      result:
+        enum:
+        - passed
+        - failed
+        - rework_required
+        type: string
+    required:
+    - checklist_data
+    - product_instance_id
+    - result
+    type: object
+  qc.QCWithInstance:
+    properties:
+      checklist_data:
+        type: object
+      evidence_paths:
+        type: object
+      id:
+        type: integer
+      inspected_at:
+        type: string
+      inspected_by:
+        type: integer
+      notes:
+        type: string
+      product_instance_id:
+        type: integer
+      result:
+        type: string
+      serial_number:
+        type: string
+      store_id:
+        type: integer
+    type: object
+  qc.QualityControl:
+    properties:
+      checklist_data:
+        type: object
+      evidence_paths:
+        type: object
+      id:
+        type: integer
+      inspected_at:
+        type: string
+      inspected_by:
+        type: integer
+      notes:
+        type: string
+      product_instance_id:
+        type: integer
+      result:
+        type: string
+    type: object
   qrcodes.QRCodeDetail:
     properties:
       code:
@@ -519,6 +694,75 @@ definitions:
         $ref: '#/definitions/response.Meta'
       success:
         type: boolean
+    type: object
+  shipping.CreateRequest:
+    properties:
+      courier:
+        maxLength: 100
+        type: string
+      order_id:
+        type: integer
+      recipient_address:
+        type: string
+      recipient_name:
+        maxLength: 150
+        type: string
+      recipient_phone:
+        maxLength: 20
+        type: string
+      tracking_number:
+        maxLength: 100
+        type: string
+    required:
+    - order_id
+    - recipient_address
+    - recipient_name
+    type: object
+  shipping.Shipment:
+    properties:
+      courier:
+        type: string
+      created_at:
+        type: string
+      delivered_at:
+        type: string
+      id:
+        type: integer
+      order_id:
+        type: integer
+      recipient_address:
+        type: string
+      recipient_name:
+        type: string
+      recipient_phone:
+        type: string
+      shipped_at:
+        type: string
+      shipping_status:
+        type: string
+      tracking_number:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  shipping.UpdateStatusRequest:
+    properties:
+      courier:
+        maxLength: 100
+        type: string
+      status:
+        enum:
+        - waiting
+        - packed
+        - shipped
+        - delivered
+        - failed
+        type: string
+      tracking_number:
+        maxLength: 100
+        type: string
+    required:
+    - status
     type: object
   stores.CreateRequest:
     properties:
@@ -633,6 +877,74 @@ info:
   title: REPUTAP API
   version: "1.0"
 paths:
+  /api/v1/audit-logs:
+    get:
+      description: Get paginated list of audit logs with optional filters
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Items per page
+        in: query
+        name: per_page
+        type: integer
+      - description: Filter by entity type
+        in: query
+        name: entity_type
+        type: string
+      - description: Filter by entity ID
+        in: query
+        name: entity_id
+        type: integer
+      - description: Filter by user ID
+        in: query
+        name: user_id
+        type: integer
+      - description: Filter by action
+        in: query
+        name: action
+        type: string
+      - description: Filter from date (YYYY-MM-DD)
+        in: query
+        name: date_from
+        type: string
+      - description: Filter to date (YYYY-MM-DD)
+        in: query
+        name: date_to
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/audit.AuditLog'
+                  type: array
+                meta:
+                  $ref: '#/definitions/response.Meta'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List audit logs
+      tags:
+      - Audit Logs
   /api/v1/auth/login:
     post:
       consumes:
@@ -1062,6 +1374,354 @@ paths:
       summary: Update customer
       tags:
       - Customers
+  /api/v1/design-assets:
+    get:
+      description: Get paginated list of design assets with optional filters
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Items per page
+        in: query
+        name: per_page
+        type: integer
+      - description: Filter by order ID
+        in: query
+        name: order_id
+        type: integer
+      - description: Filter by store ID
+        in: query
+        name: store_id
+        type: integer
+      - description: Filter by approval status
+        in: query
+        name: status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/design.DesignAsset'
+                  type: array
+                meta:
+                  $ref: '#/definitions/response.Meta'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List design assets
+      tags:
+      - Design Assets
+  /api/v1/design-assets/{id}:
+    delete:
+      description: Delete a design asset and its file from disk
+      parameters:
+      - description: Design Asset ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  additionalProperties:
+                    type: string
+                  type: object
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Delete design asset
+      tags:
+      - Design Assets
+    get:
+      description: Get a single design asset by its ID
+      parameters:
+      - description: Design Asset ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/design.DesignAsset'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get design asset by ID
+      tags:
+      - Design Assets
+  /api/v1/design-assets/{id}/approval:
+    patch:
+      consumes:
+      - application/json
+      description: Update the approval status of a design asset
+      parameters:
+      - description: Design Asset ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Approval status data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/design.UpdateApprovalRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  additionalProperties:
+                    type: string
+                  type: object
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+        "422":
+          description: Unprocessable Entity
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Update approval status
+      tags:
+      - Design Assets
+  /api/v1/design-assets/{id}/download:
+    get:
+      description: Download a design asset file
+      parameters:
+      - description: Design Asset ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Download design asset
+      tags:
+      - Design Assets
+  /api/v1/design-assets/upload:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Upload a design file for an order
+      parameters:
+      - description: Design file
+        in: formData
+        name: file
+        required: true
+        type: file
+      - description: Order ID
+        in: formData
+        name: order_id
+        required: true
+        type: integer
+      - description: Store ID
+        in: formData
+        name: store_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/design.DesignAsset'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Upload design asset
+      tags:
+      - Design Assets
   /api/v1/orders:
     get:
       description: Get paginated list of orders with optional filters
@@ -1433,6 +2093,52 @@ paths:
       summary: Update order status
       tags:
       - Orders
+  /api/v1/orders/{orderId}/designs:
+    get:
+      description: Get all design assets for a specific order
+      parameters:
+      - description: Order ID
+        in: path
+        name: orderId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/design.DesignAsset'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List designs by order
+      tags:
+      - Design Assets
   /api/v1/orders/{orderId}/instances:
     get:
       description: Get all product instances for a specific order
@@ -1534,6 +2240,50 @@ paths:
       summary: Generate product instances for an order
       tags:
       - Product Instances
+  /api/v1/orders/{orderId}/shipment:
+    get:
+      description: Get the shipment associated with an order
+      parameters:
+      - description: Order ID
+        in: path
+        name: orderId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/shipping.Shipment'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get shipment by order ID
+      tags:
+      - Shipping
   /api/v1/product-instances:
     get:
       description: Get paginated list of product instances with optional filters
@@ -1724,6 +2474,233 @@ paths:
       summary: Update NFC status
       tags:
       - Product Instances
+  /api/v1/production/jobs:
+    get:
+      description: Get paginated list of production jobs with optional filters
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Items per page
+        in: query
+        name: per_page
+        type: integer
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Filter by assigned user ID
+        in: query
+        name: assigned_to
+        type: integer
+      - description: Filter by store ID
+        in: query
+        name: store_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/production.JobWithInstance'
+                  type: array
+                meta:
+                  $ref: '#/definitions/response.Meta'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List production jobs
+      tags:
+      - Production
+    post:
+      consumes:
+      - application/json
+      description: Create a new production job for a product instance
+      parameters:
+      - description: Production job data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/production.CreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/production.JobWithInstance'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+        "422":
+          description: Unprocessable Entity
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Create production job
+      tags:
+      - Production
+  /api/v1/production/jobs/{id}:
+    get:
+      description: Get a single production job by ID
+      parameters:
+      - description: Production Job ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/production.JobWithInstance'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get production job by ID
+      tags:
+      - Production
+  /api/v1/production/jobs/{id}/status:
+    patch:
+      consumes:
+      - application/json
+      description: Update the status of a production job
+      parameters:
+      - description: Production Job ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Status data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/production.UpdateStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  additionalProperties:
+                    type: string
+                  type: object
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+        "422":
+          description: Unprocessable Entity
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Update production job status
+      tags:
+      - Production
   /api/v1/products:
     get:
       description: Get paginated list of products with optional search and status
@@ -2179,6 +3156,426 @@ paths:
       summary: Update QR code status
       tags:
       - QR Codes
+  /api/v1/quality-controls:
+    get:
+      description: Get paginated list of quality control records with optional filters
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Items per page
+        in: query
+        name: per_page
+        type: integer
+      - description: Filter by product instance ID
+        in: query
+        name: product_instance_id
+        type: integer
+      - description: Filter by result
+        in: query
+        name: result
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/qc.QCWithInstance'
+                  type: array
+                meta:
+                  $ref: '#/definitions/response.Meta'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List quality controls
+      tags:
+      - Quality Control
+    post:
+      consumes:
+      - application/json
+      description: Create a new quality control inspection record
+      parameters:
+      - description: Quality control data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/qc.CreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/qc.QCWithInstance'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+        "422":
+          description: Unprocessable Entity
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Create quality control record
+      tags:
+      - Quality Control
+  /api/v1/quality-controls/{id}:
+    get:
+      description: Get a single quality control record by ID
+      parameters:
+      - description: Quality Control ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/qc.QCWithInstance'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get quality control by ID
+      tags:
+      - Quality Control
+  /api/v1/quality-controls/instance/{instanceId}:
+    get:
+      description: Get all quality control records for a product instance
+      parameters:
+      - description: Product Instance ID
+        in: path
+        name: instanceId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/qc.QualityControl'
+                  type: array
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List quality controls by instance
+      tags:
+      - Quality Control
+  /api/v1/shipments:
+    get:
+      description: Get paginated list of shipments with optional filters
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Items per page
+        in: query
+        name: per_page
+        type: integer
+      - description: Filter by order ID
+        in: query
+        name: order_id
+        type: integer
+      - description: Filter by shipping status
+        in: query
+        name: status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/shipping.Shipment'
+                  type: array
+                meta:
+                  $ref: '#/definitions/response.Meta'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List shipments
+      tags:
+      - Shipping
+    post:
+      consumes:
+      - application/json
+      description: Create a new shipment for an order
+      parameters:
+      - description: Shipment data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/shipping.CreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/shipping.Shipment'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+        "422":
+          description: Unprocessable Entity
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Create shipment
+      tags:
+      - Shipping
+  /api/v1/shipments/{id}:
+    get:
+      description: Get a single shipment by ID
+      parameters:
+      - description: Shipment ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/shipping.Shipment'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get shipment by ID
+      tags:
+      - Shipping
+  /api/v1/shipments/{id}/status:
+    patch:
+      consumes:
+      - application/json
+      description: Update the shipping status of a shipment
+      parameters:
+      - description: Shipment ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Status data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/shipping.UpdateStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  additionalProperties:
+                    type: string
+                  type: object
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+        "422":
+          description: Unprocessable Entity
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                error:
+                  $ref: '#/definitions/response.ErrorBody'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Update shipment status
+      tags:
+      - Shipping
   /api/v1/stores:
     get:
       description: Get paginated list of stores with optional filters

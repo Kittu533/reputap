@@ -10,17 +10,22 @@ import (
 	"github.com/go-chi/cors"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 
+	"github.com/kittu533/reputap-be/internal/audit"
 	"github.com/kittu533/reputap-be/internal/auth"
 	"github.com/kittu533/reputap-be/internal/config"
 	"github.com/kittu533/reputap-be/internal/customers"
 	"github.com/kittu533/reputap-be/internal/database"
+	"github.com/kittu533/reputap-be/internal/design"
 	"github.com/kittu533/reputap-be/internal/middleware"
 	"github.com/kittu533/reputap-be/internal/orders"
 	"github.com/kittu533/reputap-be/internal/productinstances"
 	"github.com/kittu533/reputap-be/internal/products"
+	"github.com/kittu533/reputap-be/internal/production"
+	"github.com/kittu533/reputap-be/internal/qc"
 	"github.com/kittu533/reputap-be/internal/qrcodes"
 	"github.com/kittu533/reputap-be/internal/redirect"
 	"github.com/kittu533/reputap-be/internal/response"
+	"github.com/kittu533/reputap-be/internal/shipping"
 	"github.com/kittu533/reputap-be/internal/stores"
 
 	_ "github.com/kittu533/reputap-be/docs"
@@ -105,6 +110,31 @@ func main() {
 	redirectService := redirect.NewService(redirectRepo)
 	redirectHandler := redirect.NewHandler(redirectService)
 
+	// Design Assets
+	designRepo := design.NewRepository(db)
+	designService := design.NewService(designRepo, cfg.UploadDir, cfg.MaxUploadSize)
+	designHandler := design.NewHandler(designService, cfg.MaxUploadSize)
+
+	// Production
+	productionRepo := production.NewRepository(db)
+	productionService := production.NewService(productionRepo)
+	productionHandler := production.NewHandler(productionService)
+
+	// Quality Control
+	qcRepo := qc.NewRepository(db)
+	qcService := qc.NewService(qcRepo)
+	qcHandler := qc.NewHandler(qcService)
+
+	// Shipping
+	shippingRepo := shipping.NewRepository(db)
+	shippingService := shipping.NewService(shippingRepo)
+	shippingHandler := shipping.NewHandler(shippingService)
+
+	// Audit Logs
+	auditRepo := audit.NewRepository(db)
+	auditService := audit.NewService(auditRepo)
+	auditHandler := audit.NewHandler(auditService)
+
 	// ========================================
 	// Setup router
 	// ========================================
@@ -184,6 +214,8 @@ func main() {
 				r.Get("/{id}/history", orderHandler.GetStatusHistory)
 				r.Post("/{orderId}/instances/generate", instanceHandler.GenerateForOrder)
 				r.Get("/{orderId}/instances", instanceHandler.ListByOrderID)
+				r.Get("/{orderId}/designs", designHandler.ListByOrderID)
+				r.Get("/{orderId}/shipment", shippingHandler.GetByOrderID)
 			})
 
 			// Product Instances
@@ -200,6 +232,43 @@ func main() {
 				r.Patch("/{id}/status", qrHandler.UpdateStatus)
 				r.Get("/{id}/download", qrHandler.Download)
 			})
+
+			// Design Assets
+			r.Route("/design-assets", func(r chi.Router) {
+				r.Get("/", designHandler.List)
+				r.Post("/upload", designHandler.Upload)
+				r.Get("/{id}", designHandler.GetByID)
+				r.Patch("/{id}/approval", designHandler.UpdateApprovalStatus)
+				r.Delete("/{id}", designHandler.Delete)
+				r.Get("/{id}/download", designHandler.Download)
+			})
+
+			// Production Jobs
+			r.Route("/production/jobs", func(r chi.Router) {
+				r.Get("/", productionHandler.List)
+				r.Post("/", productionHandler.Create)
+				r.Get("/{id}", productionHandler.GetByID)
+				r.Patch("/{id}/status", productionHandler.UpdateStatus)
+			})
+
+			// Quality Control
+			r.Route("/quality-controls", func(r chi.Router) {
+				r.Get("/", qcHandler.List)
+				r.Post("/", qcHandler.Create)
+				r.Get("/{id}", qcHandler.GetByID)
+				r.Get("/instance/{instanceId}", qcHandler.ListByInstanceID)
+			})
+
+			// Shipments
+			r.Route("/shipments", func(r chi.Router) {
+				r.Get("/", shippingHandler.List)
+				r.Post("/", shippingHandler.Create)
+				r.Get("/{id}", shippingHandler.GetByID)
+				r.Patch("/{id}/status", shippingHandler.UpdateStatus)
+			})
+
+			// Audit Logs
+			r.Get("/audit-logs", auditHandler.List)
 		})
 	})
 
