@@ -21,7 +21,8 @@ type BatchItem struct {
 	Index        int
 	SerialNumber string
 	Code         string
-	RedirectURL  string
+	QRURL        string
+	NFCURL       string
 	ImagePath    string
 }
 
@@ -63,12 +64,13 @@ func main() {
 		num := maxID + i
 		serial := fmt.Sprintf("%s-%04d", *prefixFlag, num)
 		code := fmt.Sprintf("rpt-%04d", num)
-		redirectURL := fmt.Sprintf("%s/%s", cfg.RedirectBaseURL, code)
+		qrURL := fmt.Sprintf("%s/%s?src=qr", cfg.RedirectBaseURL, code)
+		nfcURL := fmt.Sprintf("%s/%s?src=nfc", cfg.RedirectBaseURL, code)
 		imgFileName := fmt.Sprintf("%s.png", serial)
 		imgPath := filepath.Join(qrDir, imgFileName)
 
 		// 1. Generate QR Code image (512x512 PNG, crisp for print)
-		if err := qrcode.WriteFile(redirectURL, qrcode.Medium, 512, imgPath); err != nil {
+		if err := qrcode.WriteFile(qrURL, qrcode.Medium, 512, imgPath); err != nil {
 			log.Fatalf("Failed to generate QR code for %s: %v", serial, err)
 		}
 
@@ -97,7 +99,8 @@ func main() {
 			Index:        i,
 			SerialNumber: serial,
 			Code:         code,
-			RedirectURL:  redirectURL,
+			QRURL:        qrURL,
+			NFCURL:       nfcURL,
 			ImagePath:    filepath.Join("qrcodes", imgFileName),
 		})
 	}
@@ -114,15 +117,15 @@ func main() {
 	defer writer.Flush()
 
 	// Write CSV Header
-	writer.Write([]string{"No", "Serial_Number", "QR_Code", "Redirect_URL", "QR_Image_Filename", "NFC_URL_Payload", "Status"})
+	writer.Write([]string{"No", "Serial_Number", "QR_Code", "QR_Redirect_URL", "QR_Image_Filename", "NFC_URL_Payload", "Status"})
 	for _, it := range items {
 		writer.Write([]string{
 			strconv.Itoa(it.Index),
 			it.SerialNumber,
 			it.Code,
-			it.RedirectURL,
+			it.QRURL,
 			it.ImagePath,
-			it.RedirectURL,
+			it.NFCURL,
 			"READY_TO_ACTIVATE",
 		})
 	}
