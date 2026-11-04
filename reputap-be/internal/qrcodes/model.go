@@ -5,7 +5,7 @@ import "time"
 type QRCode struct {
 	ID                uint64    `json:"id" db:"id"`
 	ProductInstanceID uint64    `json:"product_instance_id" db:"product_instance_id"`
-	StoreID           uint64    `json:"store_id" db:"store_id"`
+	StoreID           *uint64   `json:"store_id" db:"store_id"`
 	Code              string    `json:"code" db:"code"`
 	Status            string    `json:"status" db:"status"`
 	CreatedAt         time.Time `json:"created_at" db:"created_at"`

@@ -1,6 +1,6 @@
 export PATH := $(HOME)/.bun/bin:$(PATH)
 
-.PHONY: dev dev-be dev-fe db migrate
+.PHONY: dev dev-be dev-fe db migrate seed produce
 
 db:
 	docker compose up -d postgres
@@ -10,6 +10,12 @@ migrate:
 		echo "Migrating: $$f"; \
 		docker exec -i reputap-postgres psql -U reputap -d reputap < "$$f"; \
 	done
+
+seed:
+	cd reputap-be && go run cmd/seed/main.go
+
+produce:
+	cd reputap-be && go run cmd/produce/main.go -n 20
 
 dev-be:
 	cd reputap-be && go run cmd/server/main.go

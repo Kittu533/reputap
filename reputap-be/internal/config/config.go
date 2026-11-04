@@ -23,6 +23,7 @@ type Config struct {
 	JWTRefreshExpiry time.Duration
 	AppBaseURL       string
 	RedirectBaseURL  string
+	FrontendURL      string
 	UploadDir        string
 	MaxUploadSize    int64
 }
@@ -59,8 +60,9 @@ func Load() *Config {
 		JWTSecret:        getEnv("JWT_SECRET", ""),
 		JWTAccessExpiry:  accessExpiry,
 		JWTRefreshExpiry: refreshExpiry,
-		AppBaseURL:       getEnv("APP_BASE_URL", "http://localhost:8080"),
-		RedirectBaseURL:  getEnv("REDIRECT_BASE_URL", "http://localhost:8080/r"),
+		AppBaseURL:       getEnv("APP_BASE_URL", "http://localhost:8081"),
+		RedirectBaseURL:  getEnv("REDIRECT_BASE_URL", "http://localhost:8081/r"),
+		FrontendURL:      getEnv("FRONTEND_URL", "http://localhost:3000"),
 		UploadDir:        getEnv("UPLOAD_DIR", "./uploads"),
 		MaxUploadSize:    maxUpload,
 	}

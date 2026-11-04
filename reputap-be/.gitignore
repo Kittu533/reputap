@@ -3,3 +3,5 @@ server.exe
 .env
 uploads/*
 !uploads/.gitkeep
+output/*
+!output/.gitkeep
