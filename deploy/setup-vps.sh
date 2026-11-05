@@ -36,13 +36,13 @@ apt-get update -y
 apt-get install -y caddy
 
 # 4. Setup directories
-mkdir -p /var/www/reputap/migrations
-mkdir -p /var/www/reputap/uploads
+mkdir -p /var/www/reputap/reputap-be/migrations
+mkdir -p /var/www/reputap/reputap-be/uploads
 
 # 5. Default .env if not exists
-if [ ! -f /var/www/reputap/.env ]; then
+if [ ! -f /var/www/reputap/reputap-be/.env ]; then
   JWT_SECRET=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 48)
-  cat <<EOF > /var/www/reputap/.env
+  cat <<EOF > /var/www/reputap/reputap-be/.env
 APP_PORT=8081
 APP_ENV=production
 
@@ -61,10 +61,10 @@ APP_BASE_URL=https://${DOMAIN}
 REDIRECT_BASE_URL=https://${DOMAIN}/r
 FRONTEND_URL=https://kitangoding.my.id
 
-UPLOAD_DIR=/var/www/reputap/uploads
+UPLOAD_DIR=/var/www/reputap/reputap-be/uploads
 MAX_UPLOAD_SIZE=10485760
 EOF
-  echo "Created default /var/www/reputap/.env"
+  echo "Created default /var/www/reputap/reputap-be/.env"
 fi
 
 # 6. Setup Caddyfile
@@ -86,11 +86,11 @@ After=network.target postgresql.service
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/var/www/reputap
-ExecStart=/var/www/reputap/server
+WorkingDirectory=/var/www/reputap/reputap-be
+ExecStart=/var/www/reputap/reputap-be/server
 Restart=always
 RestartSec=3s
-EnvironmentFile=/var/www/reputap/.env
+EnvironmentFile=/var/www/reputap/reputap-be/.env
 LimitNOFILE=65535
 
 [Install]
