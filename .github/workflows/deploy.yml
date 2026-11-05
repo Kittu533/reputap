@@ -85,33 +85,41 @@ jobs:
             "$USER@$HOST" \
             "echo SSH_AUTHENTICATION_SUCCESS"
 
-          # Upload binaries
-          echo "Uploading binaries..."
+          # Prepare target directories on VPS & ensure write permission
+          ssh -i "$SSH_KEY_FILE" \
+            -o IdentitiesOnly=yes \
+            -p "$PORT" \
+            "$USER@$HOST" \
+            "sudo mkdir -p /tmp/reputap-deploy /var/www/reputap/migrations /var/www/reputap/uploads && sudo chown -R $USER /tmp/reputap-deploy /var/www/reputap"
 
+          # Upload binaries to temporary directory
+          echo "Uploading binaries..."
           scp -i "$SSH_KEY_FILE" \
             -o IdentitiesOnly=yes \
             -P "$PORT" \
             reputap-be/server \
             reputap-be/migrate \
-            "$USER@$HOST:/var/www/reputap/reputap-be/"
+            "$USER@$HOST:/tmp/reputap-deploy/"
 
           # Upload migrations
+          echo "Uploading migrations..."
           scp -i "$SSH_KEY_FILE" \
             -o IdentitiesOnly=yes \
             -P "$PORT" \
-            -r reputap-be/migrations \
-            "$USER@$HOST:/var/www/reputap/reputap-be/"
+            -r reputap-be/migrations/* \
+            "$USER@$HOST:/var/www/reputap/migrations/"
 
-          # Run migrations and restart service
-          echo "Running migrations..."
-
+          # Move binaries, run migrations, and restart service
+          echo "Applying update & restarting service..."
           ssh -i "$SSH_KEY_FILE" \
             -o IdentitiesOnly=yes \
             -p "$PORT" \
             "$USER@$HOST" \
             "set -e &&
-             cd /var/www/reputap/reputap-be &&
-             chmod +x server migrate &&
+             sudo mv /tmp/reputap-deploy/server /var/www/reputap/server &&
+             sudo mv /tmp/reputap-deploy/migrate /var/www/reputap/migrate &&
+             sudo chmod +x /var/www/reputap/server /var/www/reputap/migrate &&
+             cd /var/www/reputap &&
              ./migrate &&
              sudo systemctl restart reputap &&
              sudo systemctl status reputap --no-pager"
