@@ -1,4 +1,3 @@
-
 name: CI / CD Backend
 
 on:
@@ -23,170 +22,79 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout repository
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # 2. Setup Go
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: '1.23'
           cache-dependency-path: reputap-be/go.sum
 
-      # 3. Build Linux binaries
-      - name: Build Linux Binaries
+      - name: Build Linux Binaries (CI Check)
         working-directory: reputap-be
         run: |
-          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-          go build -ldflags="-w -s" -o server ./cmd/server
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o server ./cmd/server
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o migrate ./cmd/migrate
 
-          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-          go build -ldflags="-w -s" -o migrate ./cmd/migrate
-
-      # 4. Deploy to VPS
-      - name: Deploy to VPS via SSH
+      - name: Deploy to VPS via SSH (CD on Merge)
         if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
-
         env:
           SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
           HOST: ${{ secrets.VPS_HOST }}
           USER: ${{ secrets.VPS_USER }}
           PORT: ${{ secrets.VPS_PORT || '22' }}
-
         run: |
           set -e
 
-          # Validate secrets
           if [ -z "$SSH_KEY" ] || [ -z "$HOST" ] || [ -z "$USER" ]; then
-            echo "::error::Missing VPS secrets"
+            echo "::error::Missing VPS secrets (VPS_SSH_KEY, VPS_HOST, VPS_USER)"
             exit 1
           fi
 
-          # Setup SSH
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
 
-          printf '%s\n' "$SSH_KEY" > ~/.ssh/reputap_deploy
-          chmod 600 ~/.ssh/reputap_deploy
+          SSH_KEY_FILE="$HOME/.ssh/reputap_deploy"
+          printf '%s\n' "$SSH_KEY" > "$SSH_KEY_FILE"
+          chmod 600 "$SSH_KEY_FILE"
 
           ssh-keyscan -H -p "$PORT" "$HOST" >> ~/.ssh/known_hosts 2>/dev/null
           chmod 600 ~/.ssh/known_hosts
 
-          # SSH options
-          SSH_KEY_FILE="$HOME/.ssh/reputap_deploy"
-
           echo "Testing SSH connection..."
+          ssh -i "$SSH_KEY_FILE" -o IdentitiesOnly=yes -o BatchMode=yes -p "$PORT" "$USER@$HOST" "echo SSH_AUTHENTICATION_SUCCESS"
 
-          ssh -i "$SSH_KEY_FILE" \
-            -o IdentitiesOnly=yes \
-            -o BatchMode=yes \
-            -p "$PORT" \
-            "$USER@$HOST" \
-            "echo SSH_AUTHENTICATION_SUCCESS"
-
-          # Prepare target directories on VPS & ensure write permission
-          ssh -i "$SSH_KEY_FILE" \
-            -o IdentitiesOnly=yes \
-            -p "$PORT" \
-            "$USER@$HOST" \
+          echo "Preparing target directories on VPS..."
+          ssh -i "$SSH_KEY_FILE" -o IdentitiesOnly=yes -p "$PORT" "$USER@$HOST" \
             "sudo mkdir -p /tmp/reputap-deploy /var/www/reputap/reputap-be/migrations /var/www/reputap/reputap-be/uploads && sudo chown -R $USER /tmp/reputap-deploy /var/www/reputap"
 
-          # Upload binaries to temporary directory
-          echo "Uploading binaries..."
-          scp -i "$SSH_KEY_FILE" \
-            -o IdentitiesOnly=yes \
-            -P "$PORT" \
+          echo "Uploading binaries and service definition..."
+          scp -i "$SSH_KEY_FILE" -o IdentitiesOnly=yes -P "$PORT" \
             reputap-be/server \
             reputap-be/migrate \
+            deploy/reputap.service \
             "$USER@$HOST:/tmp/reputap-deploy/"
 
-          # Upload migrations
           echo "Uploading migrations..."
-          scp -i "$SSH_KEY_FILE" \
-            -o IdentitiesOnly=yes \
-            -P "$PORT" \
+          scp -i "$SSH_KEY_FILE" -o IdentitiesOnly=yes -P "$PORT" \
             -r reputap-be/migrations/* \
             "$USER@$HOST:/var/www/reputap/reputap-be/migrations/"
 
-          # Move binaries, run migrations, and restart service
           echo "Applying update & restarting service..."
-          ssh -i "$SSH_KEY_FILE" \
-            -o IdentitiesOnly=yes \
-            -p "$PORT" \
-            "$USER@$HOST" \
-            "set -e &&
-             sudo mv /tmp/reputap-deploy/server /var/www/reputap/reputap-be/server &&
-             sudo mv /tmp/reputap-deploy/migrate /var/www/reputap/reputap-be/migrate &&
-             sudo chmod +x /var/www/reputap/reputap-be/server /var/www/reputap/reputap-be/migrate &&
-             cd /var/www/reputap/reputap-be &&
-
-             # Auto-initialize .env if missing on VPS
-             if [ ! -f .env ]; then
-               echo 'Creating /var/www/reputap/reputap-be/.env...'
-               sudo tee .env > /dev/null << 'ENVEOF'
-APP_PORT=8081
-APP_ENV=production
-
-DB_HOST=127.0.0.1
-DB_PORT=5432
-DB_NAME=reputap
-DB_USER=reputap
-DB_PASSWORD=secret
-DB_SSLMODE=disable
-
-JWT_SECRET=reputap_jwt_super_secret_production_2026_xyz
-JWT_ACCESS_EXPIRY=15m
-JWT_REFRESH_EXPIRY=168h
-
-APP_BASE_URL=https://api.kitangoding.my.id
-REDIRECT_BASE_URL=https://api.kitangoding.my.id/r
-FRONTEND_URL=https://kitangoding.my.id
-
-UPLOAD_DIR=/var/www/reputap/reputap-be/uploads
-MAX_UPLOAD_SIZE=10485760
-ENVEOF
-               sudo chown \$USER .env
-             fi
-
-             # Fix DB_PORT 5433 -> 5432 in .env if present
-             sed -i 's/DB_PORT=5433/DB_PORT=5432/g' .env
-             sed -i 's/DB_PORT = 5433/DB_PORT = 5432/g' .env
-
-             # Ensure PostgreSQL database, user, and password match .env
-             if command -v psql >/dev/null 2>&1; then
-               DB_PASS=\$(grep -E '^DB_PASSWORD=' .env | cut -d '=' -f2- | tr -d ' \"\r\n')
-               [ -z \"\$DB_PASS\" ] && DB_PASS='secret'
-               sudo -u postgres psql -c \"DO \\\$\$ BEGIN IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'reputap') THEN CREATE ROLE reputap WITH LOGIN PASSWORD '\$DB_PASS'; END IF; END \\\$\$;\" 2>/dev/null || true
-               sudo -u postgres psql -c \"ALTER ROLE reputap WITH PASSWORD '\$DB_PASS';\" 2>/dev/null || true
-               sudo -u postgres psql -c \"SELECT 'CREATE DATABASE reputap OWNER reputap' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'reputap')\gexec\" 2>/dev/null || true
-               sudo -u postgres psql -c \"GRANT ALL PRIVILEGES ON DATABASE reputap TO reputap;\" 2>/dev/null || true
-             fi
-
-             # Update systemd service config
-             sudo tee /etc/systemd/system/reputap.service > /dev/null << SERVICEEOF
-[Unit]
-Description=Reputap Backend Service
-After=network.target postgresql.service
-
-[Service]
-Type=simple
-User=\$USER
-WorkingDirectory=/var/www/reputap/reputap-be
-ExecStart=/var/www/reputap/reputap-be/server
-Restart=always
-RestartSec=3s
-EnvironmentFile=/var/www/reputap/reputap-be/.env
-LimitNOFILE=65535
-
-[Install]
-WantedBy=multi-user.target
-SERVICEEOF
+          ssh -i "$SSH_KEY_FILE" -o IdentitiesOnly=yes -p "$PORT" "$USER@$HOST" \
+            "set -e
+             sudo mv /tmp/reputap-deploy/server /var/www/reputap/reputap-be/server
+             sudo mv /tmp/reputap-deploy/migrate /var/www/reputap/reputap-be/migrate
+             sudo chmod +x /var/www/reputap/reputap-be/server /var/www/reputap/reputap-be/migrate
+             sudo mv /tmp/reputap-deploy/reputap.service /etc/systemd/system/reputap.service
              sudo systemctl daemon-reload
              sudo systemctl enable reputap
-
-             ./migrate &&
-             sudo systemctl restart reputap &&
+             cd /var/www/reputap/reputap-be
+             sed -i 's/DB_PORT=5433/DB_PORT=5432/g' .env 2>/dev/null || true
+             sed -i 's/DB_PORT = 5433/DB_PORT = 5432/g' .env 2>/dev/null || true
+             ./migrate
+             sudo systemctl restart reputap
              sudo systemctl status reputap --no-pager"
 
           echo "Deployment completed successfully!"
