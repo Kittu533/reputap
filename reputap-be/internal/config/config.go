@@ -52,7 +52,7 @@ func Load() *Config {
 		AppPort:          getEnv("APP_PORT", "8080"),
 		AppEnv:           getEnv("APP_ENV", "development"),
 		DBHost:           getEnv("DB_HOST", "localhost"),
-		DBPort:           getEnv("DB_PORT", "5433"),
+		DBPort:           getEnv("DB_PORT", "5432"),
 		DBName:           getEnv("DB_NAME", "reputap"),
 		DBUser:           getEnv("DB_USER", "reputap"),
 		DBPassword:       getEnv("DB_PASSWORD", "secret"),
