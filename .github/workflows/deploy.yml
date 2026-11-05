@@ -1,3 +1,4 @@
+
 name: CI / CD Backend
 
 on:
@@ -7,12 +8,14 @@ on:
     paths:
       - 'reputap-be/**'
       - '.github/workflows/deploy.yml'
+
   pull_request:
     branches:
       - main
     paths:
       - 'reputap-be/**'
       - '.github/workflows/deploy.yml'
+
   workflow_dispatch:
 
 jobs:
@@ -20,51 +23,97 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. Checkout repository
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      # 2. Setup Go
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: '1.23'
           cache-dependency-path: reputap-be/go.sum
 
-      - name: Build Linux Binaries (CI Check)
+      # 3. Build Linux binaries
+      - name: Build Linux Binaries
         working-directory: reputap-be
         run: |
-          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o server ./cmd/server
-          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o migrate ./cmd/migrate
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+          go build -ldflags="-w -s" -o server ./cmd/server
 
-      - name: Deploy to VPS via SSH (CD on Merge)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+          go build -ldflags="-w -s" -o migrate ./cmd/migrate
+
+      # 4. Deploy to VPS
+      - name: Deploy to VPS via SSH
+        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
+
         env:
           SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
           HOST: ${{ secrets.VPS_HOST }}
           USER: ${{ secrets.VPS_USER }}
           PORT: ${{ secrets.VPS_PORT || '22' }}
+
         run: |
+          set -e
+
+          # Validate secrets
           if [ -z "$SSH_KEY" ] || [ -z "$HOST" ] || [ -z "$USER" ]; then
-            echo "::error::Missing VPS secrets (VPS_SSH_KEY, VPS_HOST, VPS_USER). Set them in repository secrets."
+            echo "::error::Missing VPS secrets"
             exit 1
           fi
 
+          # Setup SSH
           mkdir -p ~/.ssh
-          echo "$SSH_KEY" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -p "$PORT" "$HOST" >> ~/.ssh/known_hosts
+          chmod 700 ~/.ssh
 
-          echo "🚀 Uploading binaries and migrations to VPS..."
-          scp -P "$PORT" reputap-be/server reputap-be/migrate "$USER@$HOST:/var/www/reputap/"
-          scp -P "$PORT" -r reputap-be/migrations "$USER@$HOST:/var/www/reputap/"
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/reputap_deploy
+          chmod 600 ~/.ssh/reputap_deploy
 
-          echo "🔄 Running migrations & restarting reputap service..."
-          ssh -p "$PORT" "$USER@$HOST" bash -c "'
-            set -e
-            chmod +x /var/www/reputap/server /var/www/reputap/migrate
-            cd /var/www/reputap
-            ./migrate
-            systemctl restart reputap
-            systemctl status reputap --no-pager
-          '"
+          ssh-keyscan -H -p "$PORT" "$HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          chmod 600 ~/.ssh/known_hosts
 
-          echo "✅ Deployment completed successfully!"
+          # SSH options
+          SSH_KEY_FILE="$HOME/.ssh/reputap_deploy"
+
+          echo "Testing SSH connection..."
+
+          ssh -i "$SSH_KEY_FILE" \
+            -o IdentitiesOnly=yes \
+            -o BatchMode=yes \
+            -p "$PORT" \
+            "$USER@$HOST" \
+            "echo SSH_AUTHENTICATION_SUCCESS"
+
+          # Upload binaries
+          echo "Uploading binaries..."
+
+          scp -i "$SSH_KEY_FILE" \
+            -o IdentitiesOnly=yes \
+            -P "$PORT" \
+            reputap-be/server \
+            reputap-be/migrate \
+            "$USER@$HOST:/var/www/reputap/reputap-be/"
+
+          # Upload migrations
+          scp -i "$SSH_KEY_FILE" \
+            -o IdentitiesOnly=yes \
+            -P "$PORT" \
+            -r reputap-be/migrations \
+            "$USER@$HOST:/var/www/reputap/reputap-be/"
+
+          # Run migrations and restart service
+          echo "Running migrations..."
+
+          ssh -i "$SSH_KEY_FILE" \
+            -o IdentitiesOnly=yes \
+            -p "$PORT" \
+            "$USER@$HOST" \
+            "set -e &&
+             cd /var/www/reputap/reputap-be &&
+             chmod +x server migrate &&
+             ./migrate &&
+             sudo systemctl restart reputap &&
+             sudo systemctl status reputap --no-pager"
+
+          echo "Deployment completed successfully!"
