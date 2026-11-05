@@ -1,0 +1,23 @@
+=======================================================
+REPUTAP PRODUCTION BATCH MANIFEST (20 UNITS)
+Batch ID: batch_20_20261105-020535
+=======================================================
+
+1. UNTUK PERCETAKAN (Stiker / Akrilik):
+   - Gunakan file: manifest.csv
+   - Kolom "QR_Image_Filename" berisi link gambar di folder "qrcodes/"
+   - Di InDesign / Illustrator / CorelDraw: pakai fitur "Data Merge"
+   - Cetak bahan: Vinyl Doff + Akrilik 2mm / 3mm
+
+2. UNTUK OPERATOR NFC (Tulis ke Chip NTAG213):
+   - Buka aplikasi "NFC Tools" (Android / iOS) atau pakai USB ACR122U
+   - Menu: Write -> Add a record -> Custom URL / URI
+   - Tulis URL yang tertera di kolom "NFC_URL_Payload" sesuai serial number
+   - Tempel stiker NFC di bagian belakang akrilik
+
+3. AKTIVASI SAAT TERJUAL:
+   - Kartu ini statusnya "unassigned" (siap pakai).
+   - Saat ada toko yang beli, tinggal buka dashboard:
+     reputap.id/qr-codes -> Assign ke Toko & masukkan link Google Review.
+   - Atau saat kartu di-tap sebelum aktif, akan otomatis muncul halaman
+     aktivasi resmi Reputap!
