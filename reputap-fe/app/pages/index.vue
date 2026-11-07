@@ -1,13 +1,56 @@
 <script setup lang="ts">
+import { normalizeSiteUrl } from '#shared/utils/site-url'
 definePageMeta({ layout: false })
-useSeoMeta({ title: 'REPUTAP — Satu tap, lebih dekat.', description: 'Display dan kartu Google Review NFC + QR untuk bisnis Anda. Pre-order REPUTAP melalui WhatsApp.' })
 const config = useRuntimeConfig()
 const number = String(config.public.whatsappNumber).trim()
 const canOrder = /^\d{8,15}$/.test(number)
 const products = [
-  { name: 'Display Google Review', price: 'Rp79.900', material: 'Akrilik transparan 2 mm · 10 × 15 cm · NFC + QR', image: '/images/reputap-display.png', tag: 'Display meja · L-shape' },
-  { name: 'Kartu Google Review', price: 'Rp50.900', material: 'Akrilik 2–3 mm · 10 × 12 cm · NFC + QR', image: '/images/reputap-card.png', tag: 'Rounded · Desain minimalis' },
+  { id: 'display-google-review', name: 'Display Google Review NFC + QR', price: 79900, material: 'Akrilik transparan 2 mm · 10 × 15 cm · NFC + QR', image: '/images/reputap-display.png', tag: 'Display meja · L-shape' },
+  { id: 'kartu-google-review', name: 'Kartu Google Review NFC + QR', price: 50900, material: 'Akrilik 2–3 mm · 10 × 12 cm · NFC + QR', image: '/images/reputap-card.png', tag: 'Rounded · Desain minimalis' },
 ]
+const siteUrl = normalizeSiteUrl(config.public.siteUrl)
+const title = 'Display & Kartu Google Review NFC + QR | REPUTAP'
+const description = 'Jual display akrilik Google Review Rp79.900 dan kartu NFC + QR Rp50.900. Pilihan desain custom untuk bisnis Anda. Pre-order langsung via WhatsApp REPUTAP.'
+const imageUrl = siteUrl ? `${siteUrl}/images/reputap-display.png` : undefined
+useSeoMeta({
+  title,
+  description,
+  ogTitle: title,
+  ogDescription: description,
+  ogType: 'website',
+  ogLocale: 'id_ID',
+  ogSiteName: 'REPUTAP',
+  ogUrl: siteUrl ? `${siteUrl}/` : undefined,
+  ogImage: imageUrl,
+  ogImageWidth: 1280,
+  ogImageHeight: 853,
+  ogImageAlt: 'Display akrilik Google Review REPUTAP dengan NFC dan QR',
+  twitterCard: 'summary_large_image',
+  twitterTitle: title,
+  twitterDescription: description,
+  twitterImage: imageUrl,
+})
+useHead({
+  link: siteUrl ? [{ rel: 'canonical', href: `${siteUrl}/` }] : [],
+  script: siteUrl ? [{
+    type: 'application/ld+json',
+    innerHTML: JSON.stringify({
+      '@context': 'https://schema.org',
+      '@graph': [
+        { '@type': 'Organization', '@id': `${siteUrl}/#organization`, name: 'REPUTAP', url: `${siteUrl}/`, contactPoint: { '@type': 'ContactPoint', telephone: `+${number}`, contactType: 'sales', availableLanguage: 'Indonesian' } },
+        { '@type': 'WebSite', '@id': `${siteUrl}/#website`, name: 'REPUTAP', url: `${siteUrl}/`, inLanguage: 'id-ID', publisher: { '@id': `${siteUrl}/#organization` } },
+        { '@type': 'CollectionPage', '@id': `${siteUrl}/#webpage`, name: title, description, url: `${siteUrl}/`, inLanguage: 'id-ID', isPartOf: { '@id': `${siteUrl}/#website` }, mainEntity: {
+          '@type': 'ItemList',
+          itemListElement: products.map((product, index) => ({
+            '@type': 'ListItem', position: index + 1,
+            item: { '@type': 'Product', '@id': `${siteUrl}/#${product.id}`, name: product.name, description: product.material, image: `${siteUrl}${product.image}`, url: `${siteUrl}/#${product.id}`, brand: { '@type': 'Brand', name: 'REPUTAP' }, offers: { '@type': 'Offer', price: product.price, priceCurrency: 'IDR', availability: 'https://schema.org/PreOrder', url: `${siteUrl}/#${product.id}`, seller: { '@id': `${siteUrl}/#organization` } } },
+          })),
+        } },
+      ],
+    }).replace(/</g, '\\u003c'),
+  }] : [],
+})
+const rupiah = (price: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(price)
 const steps = [
   { title: 'Pilih yang cocok.', text: 'Temukan bentuk dan material yang pas untuk bisnis Anda.' },
   { title: 'Ngobrol via WhatsApp.', text: 'Konfirmasi jumlah, desain, harga, dan estimasi pengerjaan bersama admin.' },
@@ -32,7 +75,7 @@ function orderLink(name: string) {
       <section class="hero wrap">
         <div class="hero-copy">
           <p class="eyebrow">SMART REVIEW FOR YOUR BUSINESS</p>
-          <h1>Ulasan Google.<br>Lebih praktis.<br><em>Lebih profesional.</em></h1>
+          <h1>Display & kartu<br>Google Review.<br><em>Tap NFC. Scan QR.</em></h1>
           <p class="intro">Permudah pelanggan membagikan pengalaman di Google Maps. Cukup scan QR atau tap NFC, dengan display yang menyatu dengan identitas bisnis Anda.</p>
           <div class="hero-actions"><a href="#produk" class="button">Temukan produk Anda</a><a href="#cara-pesan" class="text-link">Cara pesan <UIcon name="i-lucide-arrow-down" /></a></div>
           <div class="hero-notes"><span><UIcon name="i-lucide-nfc" /> Tap dengan NFC</span><span><UIcon name="i-lucide-scan-line" /> Scan dengan QR</span></div>
@@ -45,14 +88,14 @@ function orderLink(name: string) {
       </section>
       <div class="strip"><div class="wrap"><span>Untuk bisnis lokal</span><span>✳</span><span>Desain sesuai brand</span><span>✳</span><span>Pesan via WhatsApp</span></div></div>
       <section id="produk" class="catalog wrap">
-        <div class="heading"><div><p class="eyebrow">THE COLLECTION / 01</p><h2>Kecil bentuknya.<br>Besar manfaatnya.</h2></div><p>Display untuk meja kasir atau kartu ringkas untuk berinteraksi dengan pelanggan. Dua bentuk, sama mudahnya.</p></div>
+        <div class="heading"><div><p class="eyebrow">THE COLLECTION / 01</p><h2>Pilih display atau kartu<br>Google Review Anda.</h2></div><p>Display untuk meja kasir atau kartu ringkas untuk berinteraksi dengan pelanggan. Dua bentuk, sama mudahnya.</p></div>
         <p class="note">Pilih desain Standar REPUTAP, Custom Brand, atau Custom Premium. Detail desain dan estimasi pre-order dikonfirmasi melalui WhatsApp.</p>
         <div class="products">
-          <article v-for="product in products" :key="product.name" class="product-card">
+          <article v-for="product in products" :key="product.name" :id="product.id" class="product-card">
             <a :href="product.image" target="_blank" rel="noopener noreferrer" class="product-art" :aria-label="`Lihat detail ${product.name} (tab baru)`">
               <img :src="product.image" :alt="`${product.name}: spesifikasi, varian desain, dan tampak produk`" width="1280" height="853" loading="lazy">
             </a>
-            <div class="product-info"><p class="product-category">{{ product.tag }}</p><h3>{{ product.name }}</h3><p class="material">{{ product.material }}</p><p class="price">{{ product.price }} <span>/ unit</span></p><p class="product-status"><span class="status-dot" /> Open pre-order</p>
+            <div class="product-info"><p class="product-category">{{ product.tag }}</p><h3>{{ product.name }}</h3><p class="material">{{ product.material }}</p><p class="price">{{ rupiah(product.price) }} <span>/ unit</span></p><p class="product-status"><span class="status-dot" /> Open pre-order</p>
               <a v-if="canOrder" :href="orderLink(product.name)" target="_blank" rel="noopener noreferrer" class="order">Pre-order via WhatsApp</a>
               <button v-else class="order" disabled>WhatsApp segera tersedia <UIcon name="i-lucide-message-circle" /></button>
             </div>
@@ -127,7 +170,7 @@ h2 { font-size: clamp(32px, 3.4vw, 44px); font-weight: 650; letter-spacing: -1.8
 .heading > p { max-width: 340px; color: var(--muted); font-size: 14px; line-height: 1.85; }
 .note { max-width: 760px; margin-bottom: 30px; color: var(--muted); font-size: 12px; line-height: 1.8; }
 .products { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; }
-.product-card { border: 1px solid var(--line); border-radius: 18px; padding: 12px; background: #fff; transition: transform .3s, box-shadow .3s, border-color .3s; }
+.product-card { scroll-margin-top: 145px; border: 1px solid var(--line); border-radius: 18px; padding: 12px; background: #fff; transition: transform .3s, box-shadow .3s, border-color .3s; }
 .product-art { display: block; overflow: hidden; border-radius: 10px; background: var(--soft); }
 .product-art img { display: block; width: 100%; height: auto; transition: transform .5s ease; }
 .product-info { padding: 25px 14px 12px; }

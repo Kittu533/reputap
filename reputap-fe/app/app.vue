@@ -1,5 +1,9 @@
 <script setup lang="ts">
 const colorMode = useColorMode()
+const route = useRoute()
+useSeoMeta({
+  robots: () => route.path === '/' ? 'index, follow, max-image-preview:large' : 'noindex, nofollow',
+})
 
 onMounted(() => {
   // Sync and ensure default is light mode

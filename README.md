@@ -46,3 +46,9 @@ make dev-fe   # Start Nuxt frontend (port 3000)
 - **Email**: `admin@reputap.id`
 - **Password**: `admin123`
 - **Role**: `super_admin`
+
+## Landing page SEO
+
+Set `NUXT_PUBLIC_SITE_URL` to the public frontend origin (currently `https://reputap-alpha.vercel.app`), without `/login`. The landing page renders its canonical URL, social preview, and product catalog structured data on the server. `/sitemap.xml` lists the public homepage; admin and activation routes use `noindex, nofollow`.
+
+After deployment, verify the site in Google Search Console and submit `/sitemap.xml`. Update this URL when moving to a custom domain. Run SEO helper checks with `cd reputap-fe && bun test tests/seo.test.ts`. After `npm run build`, run `node tests/seo-smoke.mjs` to check the rendered metadata and SEO endpoints on temporary port 3197.
