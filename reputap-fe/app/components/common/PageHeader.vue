@@ -16,7 +16,7 @@ defineProps<{
     <div>
       <!-- Breadcrumbs -->
       <nav v-if="breadcrumbs && breadcrumbs.length > 0" class="flex items-center gap-1.5 text-xs font-medium text-slate-400 mb-2">
-        <NuxtLink to="/" class="hover:text-slate-700 transition-colors flex items-center gap-1">
+        <NuxtLink to="/dashboard" class="hover:text-slate-700 transition-colors flex items-center gap-1">
           <UIcon name="i-lucide-home" class="size-3.5" />
           <span>Home</span>
         </NuxtLink>

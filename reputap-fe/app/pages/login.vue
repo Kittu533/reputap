@@ -8,7 +8,7 @@ definePageMeta({
 const { login, isAuthenticated } = useAuth()
 
 if (isAuthenticated.value) {
-  navigateTo('/')
+  navigateTo('/dashboard')
 }
 
 const state = reactive({
@@ -38,7 +38,7 @@ async function onSubmit(event: FormSubmitEvent<typeof state>) {
   loading.value = false
 
   if (result.success) {
-    navigateTo('/')
+    navigateTo('/dashboard')
   }
   else {
     errorMessage.value = result.error || 'Login failed'

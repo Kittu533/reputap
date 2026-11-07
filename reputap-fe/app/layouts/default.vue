@@ -48,7 +48,7 @@ const navGroups = computed<NavGroup[]>(() => [
       {
         label: 'Dashboard',
         icon: 'i-lucide-layout-dashboard',
-        to: '/',
+        to: '/dashboard',
       },
       {
         label: 'Analytics',
@@ -130,7 +130,7 @@ const navGroups = computed<NavGroup[]>(() => [
 ])
 
 function isItemActive(to: string): boolean {
-  if (to === '/') return route.path === '/'
+  if (to === '/dashboard') return route.path === '/dashboard'
   return route.path.startsWith(to)
 }
 
@@ -165,7 +165,7 @@ const userMenuItems = computed<DropdownMenuItem[][]>(() => [
     >
       <!-- Brand Header -->
       <div class="h-16 flex items-center justify-between px-4 border-b border-slate-200/80 bg-white">
-        <NuxtLink to="/" class="flex items-center gap-3 overflow-hidden">
+        <NuxtLink to="/dashboard" class="flex items-center gap-3 overflow-hidden">
           <div class="size-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-black text-base shadow-sm shrink-0">
             R
           </div>
