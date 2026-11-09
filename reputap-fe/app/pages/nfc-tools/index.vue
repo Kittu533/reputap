@@ -8,7 +8,14 @@ definePageMeta({
 const { apiFetch } = useApi()
 const toast = useToast()
 const config = useRuntimeConfig()
-const redirectBase = (config.public.redirectBase as string) || 'http://localhost:8081/r'
+const redirectBase = computed(() => {
+  if (config.public.redirectBase) return (config.public.redirectBase as string).replace(/\/+$/, '')
+  if (config.public.apiBase) {
+    const base = (config.public.apiBase as string).replace(/\/+$/, '')
+    return `${base}/r`
+  }
+  return 'https://api.kitangoding.my.id/r'
+})
 
 const isSupported = ref(false)
 const activeTab = ref<'write' | 'read'>('write')
@@ -39,7 +46,7 @@ const selectedInstance = computed(() => {
 const nfcPayload = computed(() => {
   if (!selectedInstance.value) return ''
   const code = selectedInstance.value.qr_code || selectedInstance.value.serial_number
-  return `${redirectBase}/${code}?src=nfc`
+  return `${redirectBase.value}/${code}?src=nfc`
 })
 
 async function fetchInstances() {

@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	qrcode "github.com/skip2/go-qrcode"
@@ -29,6 +30,9 @@ type BatchItem struct {
 func main() {
 	countFlag := flag.Int("n", 20, "Number of blank products to produce")
 	prefixFlag := flag.String("prefix", "RP26", "Serial number prefix")
+	prodFlag := flag.Bool("prod", false, "Use production redirect URL (https://api.kitangoding.my.id/r)")
+	urlFlag := flag.String("url", "", "Custom redirect base URL (e.g. https://api.kitangoding.my.id/r)")
+	startFlag := flag.Int("start", 0, "Starting number index (0 = auto-detect from database)")
 	flag.Parse()
 
 	count := *countFlag
@@ -37,11 +41,25 @@ func main() {
 	}
 
 	cfg := config.Load()
-	db, err := database.Connect(cfg.DSN())
-	if err != nil {
-		log.Fatalf("Database connection failed: %v", err)
+
+	// Determine redirect base URL
+	baseURL := cfg.RedirectBaseURL
+	if *prodFlag {
+		baseURL = "https://api.kitangoding.my.id/r"
 	}
-	defer db.Close()
+	if *urlFlag != "" {
+		baseURL = strings.TrimRight(*urlFlag, "/")
+	}
+
+	fmt.Printf("🌐 Using Redirect Base URL: %s\n", baseURL)
+
+	db, err := database.Connect(cfg.DSN())
+	hasDB := err == nil
+	if !hasDB {
+		fmt.Printf("⚠️  Local database connection skipped: %v\n", err)
+	} else {
+		defer db.Close()
+	}
 
 	timestamp := time.Now().Format("20060102-150405")
 	batchDir := filepath.Join("output", "production", fmt.Sprintf("batch_%d_%s", count, timestamp))
@@ -51,21 +69,27 @@ func main() {
 		log.Fatalf("Failed to create output directory: %v", err)
 	}
 
-	// Find the current highest serial number with this prefix to avoid conflicts
+	// Determine start index
 	var maxID int
-	db.QueryRowContext(context.Background(), `
-		SELECT COALESCE(COUNT(*), 0) FROM product_instances WHERE serial_number LIKE $1
-	`, *prefixFlag+"-%").Scan(&maxID)
+	if *startFlag > 0 {
+		maxID = *startFlag - 1
+	} else if hasDB {
+		db.QueryRowContext(context.Background(), `
+			SELECT COALESCE(COUNT(*), 0) FROM product_instances WHERE serial_number LIKE $1
+		`, *prefixFlag+"-%").Scan(&maxID)
+	}
 
 	fmt.Printf("🏭 Starting production batch: %d units (Prefix: %s, Start index: %d)\n", count, *prefixFlag, maxID+1)
 
 	var items []BatchItem
+	var sqlStatements []string
+
 	for i := 1; i <= count; i++ {
 		num := maxID + i
 		serial := fmt.Sprintf("%s-%04d", *prefixFlag, num)
 		code := fmt.Sprintf("rpt-%04d", num)
-		qrURL := fmt.Sprintf("%s/%s?src=qr", cfg.RedirectBaseURL, code)
-		nfcURL := fmt.Sprintf("%s/%s?src=nfc", cfg.RedirectBaseURL, code)
+		qrURL := fmt.Sprintf("%s/%s?src=qr", baseURL, code)
+		nfcURL := fmt.Sprintf("%s/%s?src=nfc", baseURL, code)
 		imgFileName := fmt.Sprintf("%s.png", serial)
 		imgPath := filepath.Join(qrDir, imgFileName)
 
@@ -74,26 +98,39 @@ func main() {
 			log.Fatalf("Failed to generate QR code for %s: %v", serial, err)
 		}
 
-		// 2. Insert into database (Status: unassigned / ready-stock)
-		var instanceID uint64
-		err := db.QueryRowContext(context.Background(), `
-			INSERT INTO product_instances (serial_number, nfc_status, production_status, qc_status)
-			VALUES ($1, 'not_configured', 'completed', 'passed')
-			ON CONFLICT (serial_number) DO UPDATE SET updated_at = CURRENT_TIMESTAMP
-			RETURNING id
-		`, serial).Scan(&instanceID)
-		if err != nil {
-			log.Fatalf("Failed to insert product instance %s: %v", serial, err)
+		// 2. Insert into local database if connected
+		if hasDB {
+			var instanceID uint64
+			err := db.QueryRowContext(context.Background(), `
+				INSERT INTO product_instances (serial_number, nfc_status, production_status, qc_status)
+				VALUES ($1, 'not_configured', 'completed', 'passed')
+				ON CONFLICT (serial_number) DO UPDATE SET updated_at = CURRENT_TIMESTAMP
+				RETURNING id
+			`, serial).Scan(&instanceID)
+			if err != nil {
+				log.Fatalf("Failed to insert product instance %s: %v", serial, err)
+			}
+
+			_, err = db.ExecContext(context.Background(), `
+				INSERT INTO qr_codes (product_instance_id, code, status)
+				VALUES ($1, $2, 'unassigned')
+				ON CONFLICT (code) DO UPDATE SET status = EXCLUDED.status
+			`, instanceID, code)
+			if err != nil {
+				log.Fatalf("Failed to insert qr_code %s: %v", code, err)
+			}
 		}
 
-		_, err = db.ExecContext(context.Background(), `
-			INSERT INTO qr_codes (product_instance_id, code, status)
-			VALUES ($1, $2, 'unassigned')
-			ON CONFLICT (code) DO UPDATE SET status = EXCLUDED.status
-		`, instanceID, code)
-		if err != nil {
-			log.Fatalf("Failed to insert qr_code %s: %v", code, err)
-		}
+		// Collect SQL for VPS import
+		sqlStatements = append(sqlStatements, fmt.Sprintf(`
+INSERT INTO product_instances (serial_number, nfc_status, production_status, qc_status)
+VALUES ('%s', 'not_configured', 'completed', 'passed')
+ON CONFLICT (serial_number) DO UPDATE SET updated_at = CURRENT_TIMESTAMP;
+
+INSERT INTO qr_codes (product_instance_id, code, status)
+SELECT id, '%s', 'unassigned'
+FROM product_instances WHERE serial_number = '%s'
+ON CONFLICT (code) DO UPDATE SET status = EXCLUDED.status;`, serial, code, serial))
 
 		items = append(items, BatchItem{
 			Index:        i,
@@ -130,11 +167,32 @@ func main() {
 		})
 	}
 
-	// 4. Instructions file
+	// 4. Generate import_vps.sql
+	sqlPath := filepath.Join(batchDir, "import_vps.sql")
+	sqlContent := fmt.Sprintf(`-- =======================================================
+-- REPUTAP BATCH PRODUCTION IMPORT FOR VPS
+-- Batch ID : batch_%d_%s
+-- Total    : %d units
+-- Prefix   : %s (Index %d - %d)
+-- Base URL : %s
+-- =======================================================
+
+BEGIN;
+%s
+
+COMMIT;
+`, count, timestamp, count, *prefixFlag, maxID+1, maxID+count, baseURL, strings.Join(sqlStatements, "\n"))
+
+	if err := os.WriteFile(sqlPath, []byte(sqlContent), 0644); err != nil {
+		log.Printf("⚠️ Failed to write import_vps.sql: %v", err)
+	}
+
+	// 5. Instructions file
 	readmePath := filepath.Join(batchDir, "PANDUAN_PRODUKSI.txt")
 	readmeContent := fmt.Sprintf(`=======================================================
 REPUTAP PRODUCTION BATCH MANIFEST (%d UNITS)
 Batch ID: batch_%d_%s
+Base URL: %s
 =======================================================
 
 1. UNTUK PERCETAKAN (Stiker / Akrilik):
@@ -149,19 +207,23 @@ Batch ID: batch_%d_%s
    - Tulis URL yang tertera di kolom "NFC_URL_Payload" sesuai serial number
    - Tempel stiker NFC di bagian belakang akrilik
 
-3. AKTIVASI SAAT TERJUAL:
+3. SINKRONISASI KE VPS (Production):
+   - Copy atau jalankan file import_vps.sql di database PostgreSQL VPS:
+     sudo -u postgres psql -d reputap < import_vps.sql
+
+4. AKTIVASI SAAT TERJUAL:
    - Kartu ini statusnya "unassigned" (siap pakai).
-   - Saat ada toko yang beli, tinggal buka dashboard:
-     reputap.id/qr-codes -> Assign ke Toko & masukkan link Google Review.
-   - Atau saat kartu di-tap sebelum aktif, akan otomatis muncul halaman
-     aktivasi resmi Reputap!
-`, count, count, timestamp)
+   - Saat ada toko yang beli, tinggal scan QR atau buka halaman aktivasi:
+     https://api.kitangoding.my.id/activate?code=rpt-xxxx
+`, count, count, timestamp, baseURL)
 
 	os.WriteFile(readmePath, []byte(readmeContent), 0644)
 
-	fmt.Println("\n✅ 20 Units Produced Successfully!")
+	fmt.Printf("\n✅ %d Units Produced Successfully!\n", count)
 	fmt.Printf("📁 Output Folder : %s\n", batchDir)
 	fmt.Printf("📊 CSV Manifest  : %s\n", csvPath)
 	fmt.Printf("🖼️  QR Codes     : %s (%d high-res PNG files)\n", qrDir, count)
-	fmt.Println("ℹ️  Semua unit tersimpan di database dengan status: 'unassigned' (siap diaktivasi)")
+	fmt.Printf("💾 VPS Import SQL: %s\n", sqlPath)
+	fmt.Printf("\n👉 Cara sinkron ke VPS:\n")
+	fmt.Printf("   sudo -u postgres psql -d reputap < %s\n\n", filepath.Base(sqlPath))
 }

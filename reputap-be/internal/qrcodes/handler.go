@@ -163,6 +163,151 @@ func (h *Handler) UpdateStatus(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// Update godoc
+//
+//	@Summary		Update QR code
+//	@Description	Update QR code status and assigned store
+//	@Tags			QR Codes
+//	@Accept			json
+//	@Produce		json
+//	@Param			id		path		int					true	"QR Code ID"
+//	@Param			request	body		UpdateQRCodeRequest	true	"Update request"
+//	@Success		200		{object}	response.Response
+//	@Failure		400		{object}	response.Response{error=response.ErrorBody}
+//	@Failure		404		{object}	response.Response{error=response.ErrorBody}
+//	@Failure		500		{object}	response.Response{error=response.ErrorBody}
+//	@Security		BearerAuth
+//	@Router			/api/v1/qr-codes/{id} [put]
+func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseUint(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		response.Err(w, http.StatusBadRequest, "INVALID_ID", "Invalid QR code ID")
+		return
+	}
+
+	var req UpdateQRCodeRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Err(w, http.StatusBadRequest, "INVALID_JSON", "Invalid request body")
+		return
+	}
+
+	if err := h.validate.Struct(req); err != nil {
+		var validationErrors validator.ValidationErrors
+		if errors.As(err, &validationErrors) {
+			var details []response.FieldError
+			for _, e := range validationErrors {
+				details = append(details, response.FieldError{
+					Field:   e.Field(),
+					Message: formatValidationError(e),
+				})
+			}
+			response.ValidationErr(w, details)
+			return
+		}
+		response.Err(w, http.StatusBadRequest, "VALIDATION_ERROR", "Validation failed")
+		return
+	}
+
+	if err := h.service.Update(r.Context(), id, req); err != nil {
+		if errors.Is(err, ErrNotFound) {
+			response.NotFound(w, err.Error())
+			return
+		}
+		response.InternalError(w)
+		return
+	}
+
+	response.JSON(w, http.StatusOK, map[string]string{
+		"message": "QR code updated successfully",
+	})
+}
+
+// Delete godoc
+//
+//	@Summary		Delete QR code
+//	@Description	Delete a QR code and its associated product instance
+//	@Tags			QR Codes
+//	@Produce		json
+//	@Param			id	path		int	true	"QR Code ID"
+//	@Success		200	{object}	response.Response
+//	@Failure		404	{object}	response.Response{error=response.ErrorBody}
+//	@Failure		500	{object}	response.Response{error=response.ErrorBody}
+//	@Security		BearerAuth
+//	@Router			/api/v1/qr-codes/{id} [delete]
+func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseUint(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		response.Err(w, http.StatusBadRequest, "INVALID_ID", "Invalid QR code ID")
+		return
+	}
+
+	if err := h.service.Delete(r.Context(), id); err != nil {
+		if errors.Is(err, ErrNotFound) {
+			response.NotFound(w, err.Error())
+			return
+		}
+		response.InternalError(w)
+		return
+	}
+
+	response.JSON(w, http.StatusOK, map[string]string{
+		"message": "QR code deleted successfully",
+	})
+}
+
+// BatchGenerate godoc
+//
+//	@Summary		Batch generate QR codes
+//	@Description	Generate a batch of blank/unassigned QR codes directly from dashboard
+//	@Tags			QR Codes
+//	@Accept			json
+//	@Produce		json
+//	@Param			request	body		BatchGenerateRequest	true	"Batch generate request"
+//	@Success		201		{object}	response.Response{data=[]QRCodeDetail}
+//	@Failure		400		{object}	response.Response{error=response.ErrorBody}
+//	@Failure		500		{object}	response.Response{error=response.ErrorBody}
+//	@Security		BearerAuth
+//	@Router			/api/v1/qr-codes/batch [post]
+func (h *Handler) BatchGenerate(w http.ResponseWriter, r *http.Request) {
+	var req BatchGenerateRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Err(w, http.StatusBadRequest, "INVALID_JSON", "Invalid request body")
+		return
+	}
+
+	if req.Count <= 0 {
+		req.Count = 20
+	}
+	if req.Prefix == "" {
+		req.Prefix = "RP26"
+	}
+
+	if err := h.validate.Struct(req); err != nil {
+		var validationErrors validator.ValidationErrors
+		if errors.As(err, &validationErrors) {
+			var details []response.FieldError
+			for _, e := range validationErrors {
+				details = append(details, response.FieldError{
+					Field:   e.Field(),
+					Message: formatValidationError(e),
+				})
+			}
+			response.ValidationErr(w, details)
+			return
+		}
+		response.Err(w, http.StatusBadRequest, "VALIDATION_ERROR", "Validation failed")
+		return
+	}
+
+	results, err := h.service.BatchGenerate(r.Context(), req)
+	if err != nil {
+		response.InternalError(w)
+		return
+	}
+
+	response.JSON(w, http.StatusCreated, results)
+}
+
 // Download godoc
 //
 //	@Summary		Download QR code image

@@ -70,6 +70,55 @@ func (s *Service) UpdateStatus(ctx context.Context, id uint64, req UpdateStatusR
 	return nil
 }
 
+func (s *Service) Update(ctx context.Context, id uint64, req UpdateQRCodeRequest) error {
+	_, err := s.repo.GetByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrNotFound
+		}
+		return fmt.Errorf("fetching qr code: %w", err)
+	}
+
+	if err := s.repo.Update(ctx, id, req.StoreID, req.Status); err != nil {
+		return fmt.Errorf("updating qr code: %w", err)
+	}
+
+	return nil
+}
+
+func (s *Service) Delete(ctx context.Context, id uint64) error {
+	_, err := s.repo.GetByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrNotFound
+		}
+		return fmt.Errorf("fetching qr code: %w", err)
+	}
+
+	if err := s.repo.Delete(ctx, id); err != nil {
+		return fmt.Errorf("deleting qr code: %w", err)
+	}
+
+	return nil
+}
+
+func (s *Service) BatchGenerate(ctx context.Context, req BatchGenerateRequest) ([]QRCodeDetail, error) {
+	codes, err := s.repo.BatchGenerate(ctx, req.Count, req.Prefix)
+	if err != nil {
+		return nil, fmt.Errorf("batch generating qr codes: %w", err)
+	}
+
+	details := make([]QRCodeDetail, len(codes))
+	for i, qr := range codes {
+		details[i] = QRCodeDetail{
+			QRCode:      qr,
+			RedirectURL: s.buildRedirectURL(qr.Code),
+		}
+	}
+
+	return details, nil
+}
+
 func (s *Service) GenerateQRImage(ctx context.Context, id uint64, size int) ([]byte, error) {
 	qr, err := s.repo.GetByID(ctx, id)
 	if err != nil {

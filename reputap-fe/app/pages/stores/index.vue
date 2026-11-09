@@ -21,6 +21,48 @@ const data = ref<Store[]>([])
 const total = ref(0)
 const loading = ref(false)
 
+const deleteModalOpen = ref(false)
+const deleteLoading = ref(false)
+const storeToDelete = ref<Store | null>(null)
+
+function promptDelete(store: Store) {
+  storeToDelete.value = store
+  deleteModalOpen.value = true
+}
+
+async function confirmDelete() {
+  if (!storeToDelete.value) return
+  deleteLoading.value = true
+  try {
+    const res: any = await apiFetch(`/api/v1/stores/${storeToDelete.value.id}`, {
+      method: 'DELETE',
+    })
+    if (res.success) {
+      toast.add({
+        title: 'Store Deleted',
+        description: `Store "${storeToDelete.value.name}" has been deleted.`,
+        color: 'success',
+      })
+      deleteModalOpen.value = false
+      fetchData()
+    } else {
+      toast.add({
+        title: 'Delete Failed',
+        description: res.error?.message || 'Could not delete store.',
+        color: 'error',
+      })
+    }
+  } catch (err: any) {
+    toast.add({
+      title: 'Delete Failed',
+      description: err?.message || 'Error deleting store',
+      color: 'error',
+    })
+  } finally {
+    deleteLoading.value = false
+  }
+}
+
 const statusOptions = [
   { label: 'Active', value: 'active' },
   { label: 'Inactive', value: 'inactive' },
@@ -71,6 +113,13 @@ const columns: TableColumn<Store>[] = [
           variant: 'ghost',
           size: 'xs',
           to: `/stores/${row.original.id}/edit`,
+        }),
+        h(UButton, {
+          icon: 'i-lucide-trash-2',
+          color: 'error',
+          variant: 'ghost',
+          size: 'xs',
+          onClick: () => promptDelete(row.original),
         }),
       ])
     },
@@ -141,5 +190,17 @@ onMounted(() => fetchData())
         />
       </template>
     </CommonDataTable>
+
+    <!-- Confirmation Delete Modal -->
+    <CommonConfirmModal
+      v-model:open="deleteModalOpen"
+      title="Delete Store"
+      :description="`Are you sure you want to delete store '${storeToDelete?.name}' (${storeToDelete?.store_code})?`"
+      confirm-text="Yes, Delete Store"
+      confirm-color="error"
+      icon="i-lucide-alert-triangle"
+      :loading="deleteLoading"
+      @confirm="confirmDelete"
+    />
   </div>
 </template>
