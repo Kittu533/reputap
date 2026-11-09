@@ -339,6 +339,39 @@ func (h *Handler) UpdateReviewURL(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// Delete godoc
+//
+//	@Summary		Delete store
+//	@Description	Delete a store by ID
+//	@Tags			Stores
+//	@Produce		json
+//	@Param			id	path		int	true	"Store ID"
+//	@Success		200	{object}	response.Response
+//	@Failure		404	{object}	response.Response{error=response.ErrorBody}
+//	@Failure		500	{object}	response.Response{error=response.ErrorBody}
+//	@Security		BearerAuth
+//	@Router			/api/v1/stores/{id} [delete]
+func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseUint(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		response.Err(w, http.StatusBadRequest, "INVALID_ID", "Invalid store ID")
+		return
+	}
+
+	if err := h.service.Delete(r.Context(), id); err != nil {
+		if errors.Is(err, ErrNotFound) {
+			response.NotFound(w, err.Error())
+			return
+		}
+		response.Err(w, http.StatusBadRequest, "DELETE_FAILED", err.Error())
+		return
+	}
+
+	response.JSON(w, http.StatusOK, map[string]string{
+		"message": "Store deleted successfully",
+	})
+}
+
 func formatValidationError(e validator.FieldError) string {
 	switch e.Tag() {
 	case "required":

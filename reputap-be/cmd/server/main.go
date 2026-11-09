@@ -214,6 +214,7 @@ func main() {
 				r.Put("/{id}", storeHandler.Update)
 				r.Patch("/{id}/status", storeHandler.UpdateStatus)
 				r.Put("/{id}/review-url", storeHandler.UpdateReviewURL)
+				r.Delete("/{id}", storeHandler.Delete)
 			})
 
 			// Products
@@ -248,8 +249,11 @@ func main() {
 			// QR Codes
 			r.Route("/qr-codes", func(r chi.Router) {
 				r.Get("/", qrHandler.List)
+				r.Post("/batch", qrHandler.BatchGenerate)
 				r.Get("/{id}", qrHandler.GetByID)
+				r.Put("/{id}", qrHandler.Update)
 				r.Patch("/{id}/status", qrHandler.UpdateStatus)
+				r.Delete("/{id}", qrHandler.Delete)
 				r.Get("/{id}/download", qrHandler.Download)
 			})
 

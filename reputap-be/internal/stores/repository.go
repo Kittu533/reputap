@@ -147,6 +147,24 @@ func (r *Repository) GetNextCode(ctx context.Context) (string, error) {
 	return fmt.Sprintf("STORE-%03d", nextNum), nil
 }
 
+func (r *Repository) Delete(ctx context.Context, id uint64) error {
+	var orderCount int
+	err := r.db.GetContext(ctx, &orderCount, `SELECT COUNT(*) FROM orders WHERE store_id = ?`, id)
+	if err != nil {
+		return err
+	}
+	if orderCount > 0 {
+		return fmt.Errorf("cannot delete store with %d associated orders", orderCount)
+	}
+
+	// Unlink QR codes and product instances
+	_, _ = r.db.ExecContext(ctx, `UPDATE qr_codes SET store_id = NULL, status = 'unassigned' WHERE store_id = ?`, id)
+	_, _ = r.db.ExecContext(ctx, `UPDATE product_instances SET store_id = NULL WHERE store_id = ?`, id)
+
+	_, err = r.db.ExecContext(ctx, `DELETE FROM stores WHERE id = ?`, id)
+	return err
+}
+
 func (r *Repository) SlugExists(ctx context.Context, slug string, excludeID uint64) (bool, error) {
 	var count int
 

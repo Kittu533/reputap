@@ -19,7 +19,17 @@ type QRCodeDetail struct {
 }
 
 type UpdateStatusRequest struct {
-	Status string `json:"status" validate:"required,oneof=active inactive suspended retired"`
+	Status string `json:"status" validate:"required,oneof=active inactive suspended retired unassigned"`
+}
+
+type UpdateQRCodeRequest struct {
+	Status  string  `json:"status" validate:"required,oneof=active inactive suspended retired unassigned"`
+	StoreID *uint64 `json:"store_id"`
+}
+
+type BatchGenerateRequest struct {
+	Count  int    `json:"count" validate:"required,min=1,max=100"`
+	Prefix string `json:"prefix" validate:"required,min=2,max=10"`
 }
 
 type ListParams struct {

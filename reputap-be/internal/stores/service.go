@@ -182,6 +182,22 @@ func (s *Service) UpdateReviewURL(ctx context.Context, id uint64, req UpdateRevi
 	return nil
 }
 
+func (s *Service) Delete(ctx context.Context, id uint64) error {
+	_, err := s.repo.GetByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrNotFound
+		}
+		return fmt.Errorf("fetching store: %w", err)
+	}
+
+	if err := s.repo.Delete(ctx, id); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *Service) ensureUniqueSlug(ctx context.Context, slug string, excludeID uint64) (string, error) {
 	exists, err := s.repo.SlugExists(ctx, slug, excludeID)
 	if err != nil {

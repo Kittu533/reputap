@@ -22,7 +22,8 @@ export default defineNuxtConfig({
     public: {
       siteUrl: process.env.NUXT_PUBLIC_SITE_URL || 'https://reputap-alpha.vercel.app',
       whatsappNumber: process.env.NUXT_PUBLIC_WHATSAPP_NUMBER || '6285834653796',
-      apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:8081',
+      apiBase: process.env.NUXT_PUBLIC_API_BASE || 'https://api.kitangoding.my.id',
+      redirectBase: process.env.NUXT_PUBLIC_REDIRECT_BASE || 'https://api.kitangoding.my.id/r',
     },
   },
   vite: {

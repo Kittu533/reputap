@@ -4,6 +4,8 @@ import type { DropdownMenuItem } from '@nuxt/ui'
 const { user, logout } = useAuth()
 const route = useRoute()
 const colorMode = useColorMode()
+const config = useRuntimeConfig()
+const apiBase = (config.public.apiBase as string) || 'https://api.kitangoding.my.id'
 
 const sidebarOpen = ref(true)
 
@@ -285,7 +287,7 @@ const userMenuItems = computed<DropdownMenuItem[][]>(() => [
 
         <div class="flex items-center gap-3">
           <a
-            href="http://localhost:8081/swagger/index.html"
+            :href="`${apiBase}/swagger/index.html`"
             target="_blank"
             class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-slate-200 transition-colors"
           >
